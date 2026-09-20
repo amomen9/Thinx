@@ -26,7 +26,7 @@ should be. See step 4.
     docker --version && docker compose version
 
     curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo sh get-docker.sh
+    sudo sh get-docker.sh && exit 0
     sudo usermod -aG docker $USER
     sudo systemctl enable --now docker
     newgrp docker
@@ -39,10 +39,12 @@ should be. See step 4.
     sudo ss -tlnp | grep -E ':(5000|8080|10035|11434)\b' || echo "All ports free"
 
 ## Step 3 - Get the code
+Set the BRANCH variable value with your GitHub branch name ("Agata", "Loes", "Emre", "Ali" - case sensitive)
 
-    command -v git || sudo apt-get install -y git
+    BRANCH=
+	command -v git || sudo apt-get install -y git
     sudo mkdir -p /opt/thinx && sudo chown $USER:$USER /opt/thinx
-    git clone -b Ali https://github.com/amomen9/Thinx.git /opt/thinx
+    git clone -b $BRANCH https://github.com/amomen9/Thinx.git /opt/thinx
     cd /opt/thinx && git log -1 --oneline
 
 The first line of that log should be the security hardening commit. If it says
@@ -51,7 +53,7 @@ upstream code: copy the working tree across instead of cloning, or push the bran
 
 ## Step 4 - Decide how the platform will be reached
 
-**Path A (recommended).** The platform is used on the machine itself, or from a laptop through an
+**Path A (recommended - works best for local).** The platform is used on the machine itself, or from a laptop through an
 SSH tunnel. Nothing is published to the network and no extra configuration is needed: the default
 **BIND_HOST=127.0.0.1** already does this.
 
@@ -122,7 +124,7 @@ If the wait loop is still running after about 5 minutes, press Ctrl+C and look a
 
 Any other Ollama model works too; pick it in the interface, or pull it from there.
 
-## Step 9 - Open the interface and connect it to the database
+## Step 9 - Open the interface
 
 - **Path A**, on the machine itself: open http://localhost:8080
 - **Path A**, from a laptop: run the tunnel below, keep it open, then browse to http://localhost:8080
@@ -140,9 +142,12 @@ at **VITE_API_URL**.
 
 Then, in the interface:
 
-1. **Register.** The first account created becomes the administrator. Minimum password length is 12.
+- **Register.** The first account created becomes the administrator. Minimum password length is 12.
    Set **ALLOW_REGISTRATION=false** in **.env** afterwards if only administrators should add accounts.
-2. **Log in**, open the connection manager and add a connection:
+
+## Step 10 - Connect the interface to the database
+
+- **Log in**, open the connection manager and add a connection:
 
 | Field | Value |
 |---|---|
@@ -152,12 +157,12 @@ Then, in the interface:
 | Username | **admin** |
 | Password | the **AGRAPH_SUPER_PASSWORD** from step 5 |
 
-3. Tick **Test connection before saving**, save, then activate the connection. The repository is
+- Tick **Test connection before saving**, save, then activate the connection. The repository is
    created automatically on first connect.
 
-## Step 10 (optional) - Load the HDS ontology
+## Step 11 (optional) - Load the HDS ontology
 
-Run this after step 9, once the repository exists.
+Run this after step 10, once the repository exists.
 
     cd /opt/thinx
     set -a; . ./.env; set +a
