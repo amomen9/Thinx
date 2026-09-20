@@ -147,7 +147,11 @@ Then, in the interface:
 
 ## Step 10 - Connect the interface to the database
 
-- **Log in**, open the connection manager and add a connection:
+- **Log in**, open the connection manager and add a connection
+
+1. **Local connection**:
+
+For local connection:
 
 | Field | Value |
 |---|---|
@@ -157,8 +161,13 @@ Then, in the interface:
 | Username | **admin** |
 | Password | the **AGRAPH_SUPER_PASSWORD** from step 5 |
 
-- Tick **Test connection before saving**, save, then activate the connection. The repository is
+2. **Remote connection**:
+
+We we'll get back to the remote connections later.
+
+- Make sure that for any connection you tick **Test connection before saving**, save, then activate the connection. The repository is
    created automatically on first connect.
+
 
 ## Step 11 (optional) - Load the HDS ontology
 
