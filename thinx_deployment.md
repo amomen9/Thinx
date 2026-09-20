@@ -163,7 +163,7 @@ For local connection:
 
 2. **Remote connection**:
 
-We we'll get back to the remote connections later.
+We'll get back to the remote connections later.
 
 - Make sure that for any connection you tick **Test connection before saving**, save, then activate the connection. The repository is
    created automatically on first connect.
