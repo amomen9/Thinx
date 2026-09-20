@@ -76,7 +76,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '../services/api';
 
 export default {
   name: 'Register',
@@ -108,18 +108,19 @@ export default {
       }
 
       // Validate password length
-      if (this.password.length < 6) {
-        this.error = 'Password must be at least 6 characters';
+      if (this.password.length < 12) {
+        this.error = 'Password must be at least 12 characters';
         return;
       }
 
       this.loading = true;
 
       try {
-        const response = await axios.post('http://localhost:5000/api/register', {
+        const data = await api.register({
           username: this.username,
           password: this.password
         });
+        const response = { data };
 
         if (response.data.success) {
           this.success = 'Account created successfully! Redirecting to login...';

@@ -4,6 +4,7 @@ Federated Query Script for AllegroGraph
 Queries multiple repositories and combines results using the AllegroGraph REST API
 """
 
+import os
 import requests
 from requests.auth import HTTPBasicAuth
 import pandas as pd
@@ -11,15 +12,24 @@ from typing import List, Dict
 import json
 
 # Configuration
-AGRAPH_HOST = "localhost"
+def _require_password():
+    password = os.getenv("AGRAPH_PASSWORD")
+    if not password:
+        raise SystemExit("AGRAPH_PASSWORD is not set. Export it before running this script.")
+    return password
+
+
+AGRAPH_HOST = os.getenv("AGRAPH_HOST", "localhost")
 AGRAPH_PORT = 10035
 
 # Repositories to query with their credentials
 # Note: Using admin credentials for now
 REPOSITORIES = [
-    {"name": "danieltesfa", "username": "admin", "password": "admin123"},
-    {"name": "kaismits", "username": "admin", "password": "admin123"},
-    {"name": "morganewirtz", "username": "admin", "password": "admin123"}
+    # Credentials come from the environment (finding H1): set AGRAPH_USER and
+    # AGRAPH_PASSWORD, and optionally AGRAPH_REPOSITORIES as a comma-separated list.
+    *[{"name": name, "username": os.getenv("AGRAPH_USER", "admin"),
+       "password": _require_password()}
+      for name in os.getenv("AGRAPH_REPOSITORIES", "danieltesfa,kaismits,morganewirtz").split(",")]
 ]
 
 # Base URL

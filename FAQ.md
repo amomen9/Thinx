@@ -38,7 +38,7 @@ This window lets you type commands to your computer.
 
 **Localhost = Your own computer**
 
-When you see `http://localhost`, it means "open this website that's running on MY computer, not the internet."
+When you see `http://localhost:8080`, it means "open this website that's running on MY computer, not the internet."
 
 Analogy: Like having a private website that only you can see, running on your laptop.
 
@@ -196,7 +196,7 @@ See [README.md - Developer Guide](README.md#developer-guide) for details.
 
 3. Start Docker containers:
    ```bash
-   docker-compose --profile full up
+   docker compose --profile full up
    ```
 
 4. Open your browser: http://localhost
@@ -209,15 +209,15 @@ Detailed instructions: See [QUICK_START.md](QUICK_START.md)
 ```
 1. Go to the terminal with running services
 2. Press Ctrl+C
-3. Type: docker-compose down
+3. Type: docker compose down
 ```
 
 **Option 2 - Stop everything (faster):**
 ```bash
-docker-compose stop
+docker compose stop
 ```
 
-**Next time:** Run `docker-compose up` (no `--build` needed)
+**Next time:** Run `docker compose up` (no `--build` needed)
 
 ### Can I access Thinx from another computer?
 
@@ -431,7 +431,7 @@ Feature may vary by implementation. Typically:
 
 **If still failing:**
 ```bash
-docker-compose ps
+docker compose ps
 # All containers should show "Up" status
 ```
 
@@ -502,7 +502,7 @@ docker --version
 **Solution:**
 1. Check if AllegroGraph is running:
    ```bash
-   docker-compose ps allegrograph
+   docker compose ps allegrograph
    # Should show "Up"
    ```
 
@@ -527,7 +527,7 @@ docker --version
 1. Wait 30 seconds and refresh
 2. Check backend logs:
    ```bash
-   docker-compose logs backend
+   docker compose logs backend
    ```
 3. Look for errors in output
 4. Common issues:
@@ -537,7 +537,7 @@ docker --version
 
 **If backend crashed:**
 ```bash
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### AI mapper returns all "null" or empty results
@@ -631,7 +631,7 @@ Consult your ethics board and data protection officer.
 **Thinx collects:**
 - Connection configurations (server addresses, repository names)
 - Usernames (for authentication)
-- Hashed passwords (encrypted, not plaintext)
+- Account passwords, hashed with PBKDF2-HMAC-SHA256 and a per-user salt (hashing is not encryption)
 - Activity logs (optional, for troubleshooting)
 
 **Thinx does NOT collect:**
@@ -659,13 +659,13 @@ Everything is stored locally in Docker volumes.
 
 ```bash
 # Stop containers
-docker-compose down
+docker compose down
 
 # Pull latest code (if using Git)
 git pull origin main
 
 # Rebuild containers
-docker-compose --profile full up --build
+docker compose --profile full up --build
 ```
 
 Note: This preserves your data in Docker volumes.
@@ -743,19 +743,19 @@ Yes. Deploy on:
 
 ```bash
 # Check all containers
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs
+docker compose logs
 
 # View specific service logs
-docker-compose logs backend
-docker-compose logs frontend
-docker-compose logs allegrograph
+docker compose logs backend
+docker compose logs frontend
+docker compose logs allegrograph
 
 # Check Docker version
 docker --version
-docker-compose --version
+docker compose --version
 ```
 
 ### Get Help

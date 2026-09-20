@@ -1,13 +1,16 @@
-Flask==3.0.0
-flask-cors==4.0.0
+# Pinned versions, checked against the OSV.dev advisory database on 2026-09-20.
+# The previous pin set carried 89 known advisories, 22 of them high or critical
+# (assessment finding H5). Re-check with: python assessment/osv_dependency_check.py
+Flask==3.1.3
+flask-cors==6.0.5
 agraph-python==101.0.6
-rdflib==7.0.0
-requests==2.31.0
-Werkzeug==3.0.1
-python-dotenv==1.0.0
-urllib3==1.26.18
-pycurl==7.45.2
-pandas==2.1.4
-openpyxl==3.1.2
-jupyter==1.0.0
-nbconvert==7.12.0
+rdflib==7.6.0
+requests==2.34.2
+Werkzeug==3.1.8
+python-dotenv==1.2.3
+urllib3==2.8.0
+pycurl==7.48.0
+pandas==2.3.3
+openpyxl==3.1.5
+jupyter==1.1.1
+nbconvert==7.17.1

@@ -330,7 +330,8 @@ All data handling follows GDPR principles:
 - **Consent:** Only use data you have permission to use
 - **Purpose:** Use data only for stated research purposes
 - **Minimization:** Collect only what you need
-- **Security:** Platform protects data with encryption and access controls
+- **Security:** the platform requires a login for every request and never returns stored
+  database passwords, but it does not encrypt data at rest and has no access log yet
 - **Rights:** Participants' rights to access/delete their data must be respected
 
 ---

@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Vue.js
 
 # Development stage
-FROM node:20-alpine as development
+FROM node:22-alpine as development
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -10,7 +10,7 @@ EXPOSE 80
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "80"]
 
 # Build stage
-FROM node:20-alpine as build
+FROM node:22-alpine as build
 WORKDIR /app
 COPY package*.json ./
 RUN npm install

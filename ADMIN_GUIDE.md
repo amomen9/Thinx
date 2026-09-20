@@ -114,7 +114,7 @@ Thinx consists of three main components:
 
 2. Run the full system:
    ```bash
-   docker-compose --profile full up -d
+   docker compose --profile full up -d
    ```
 
 3. Access the platform:
@@ -206,20 +206,20 @@ python3 -c "import secrets; print(secrets.token_urlsafe(16))"
 
 ```bash
 # Start services
-docker-compose --profile full up -d
+docker compose --profile full up -d
 
 # Check status
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 #### Step 6: Initialize Database
 
 ```bash
 # Create AllegroGraph repository
-docker-compose exec backend python -c "
+docker compose exec backend python -c "
 from utils.allegrograph import AllegroGraphClient
 client = AllegroGraphClient('allegrograph', 10035, 'humantrafficking', 'admin', 'your-password')
 print('Database initialized')
@@ -230,7 +230,7 @@ print('Database initialized')
 
 ```bash
 # Access backend container
-docker-compose exec backend python
+docker compose exec backend python
 
 # In Python shell:
 from models import UserManager
@@ -252,19 +252,19 @@ Thinx supports different deployment profiles:
 
 **Full Profile (All features):**
 ```bash
-docker-compose --profile full up -d
+docker compose --profile full up -d
 ```
 Includes: Frontend, Backend, AllegroGraph, Ollama
 
 **No-AI Profile (Without AI features):**
 ```bash
-docker-compose --profile no-ai up -d
+docker compose --profile no-ai up -d
 ```
 Includes: Frontend, Backend, AllegroGraph
 
 **Minimal Profile (Core only):**
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 Includes: Frontend, Backend (requires external AllegroGraph)
 
@@ -404,7 +404,7 @@ python scripts/create_user.py researcher1 SecurePassword123
 **Method 2: Via Docker Exec**
 
 ```bash
-docker-compose exec backend python -c "
+docker compose exec backend python -c "
 from models import UserManager
 from pathlib import Path
 um = UserManager(Path('data/users.json'))
@@ -418,7 +418,7 @@ print(f'Created: {user[\"username\"]}')
 **List all users:**
 
 ```bash
-docker-compose exec backend python -c "
+docker compose exec backend python -c "
 from models import UserManager
 from pathlib import Path
 import json
@@ -432,7 +432,7 @@ for u in users.values():
 **Delete a user:**
 
 ```bash
-docker-compose exec backend python -c "
+docker compose exec backend python -c "
 from models import UserManager
 from pathlib import Path
 um = UserManager(Path('data/users.json'))
@@ -444,7 +444,7 @@ print('User deleted')
 **Reset user password:**
 
 ```bash
-docker-compose exec backend python -c "
+docker compose exec backend python -c "
 from models import UserManager
 from pathlib import Path
 um = UserManager(Path('data/users.json'))
@@ -496,7 +496,7 @@ Default credentials (change immediately):
 
 **Via Docker:**
 ```bash
-docker-compose exec allegrograph agraph-python
+docker compose exec allegrograph agraph-python
 ```
 
 ```python
@@ -523,7 +523,7 @@ print("Repository created")
 docker cp hds_cdm.ttl thinx_backend:/tmp/
 
 # Load into AllegroGraph
-docker-compose exec backend python << EOF
+docker compose exec backend python << EOF
 from utils.allegrograph import AllegroGraphClient
 
 client = AllegroGraphClient('allegrograph', 10035, 'humantrafficking', 'admin', 'your-password')
@@ -562,7 +562,7 @@ curl -X POST http://localhost:10035/repositories/humantrafficking/export \
 1. **Change Default Passwords Immediately**
    ```bash
    # AllegroGraph
-   docker-compose exec allegrograph agraph-control --password
+   docker compose exec allegrograph agraph-control --password
    
    # Admin user
    # Use user management commands above
@@ -594,8 +594,8 @@ curl -X POST http://localhost:10035/repositories/humantrafficking/export \
 5. **Regular Updates**
    ```bash
    # Update Docker images
-   docker-compose pull
-   docker-compose up -d
+   docker compose pull
+   docker compose up -d
    
    # Update system
    sudo apt update && sudo apt upgrade -y
@@ -647,7 +647,7 @@ curl -X POST http://localhost:10035/repositories/humantrafficking/export \
 
 **Check service status:**
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 **Check API health:**
@@ -669,14 +669,14 @@ Expected response:
 **View logs:**
 ```bash
 # All services
-docker-compose logs -f
+docker compose logs -f
 
 # Specific service
-docker-compose logs -f backend
-docker-compose logs -f allegrograph
+docker compose logs -f backend
+docker compose logs -f allegrograph
 
 # Last N lines
-docker-compose logs --tail=100 backend
+docker compose logs --tail=100 backend
 ```
 
 **Log rotation:**
@@ -718,7 +718,7 @@ docker system df
 docker system prune -a
 
 # Clean old logs
-docker-compose logs --tail=0 -f > /dev/null &
+docker compose logs --tail=0 -f > /dev/null &
 ```
 
 ### Scheduled Maintenance
@@ -736,13 +736,13 @@ cd /opt/thinx
 ./scripts/backup.sh >> $LOG_FILE 2>&1
 
 # Clean up old logs
-docker-compose logs --tail=0 -f > /dev/null &
+docker compose logs --tail=0 -f > /dev/null &
 
 # Update images
-docker-compose pull >> $LOG_FILE 2>&1
+docker compose pull >> $LOG_FILE 2>&1
 
 # Restart services
-docker-compose restart >> $LOG_FILE 2>&1
+docker compose restart >> $LOG_FILE 2>&1
 
 echo "[$(date)] Maintenance complete" >> $LOG_FILE
 ```
@@ -787,7 +787,7 @@ docker cp thinx_backend:/app/data "$BACKUP_DIR/"
 docker cp thinx_backend:/app/uploads "$BACKUP_DIR/"
 
 # Backup AllegroGraph
-docker-compose exec -T allegrograph agraph-backup \
+docker compose exec -T allegrograph agraph-backup \
   --repo humantrafficking \
   --output /tmp/ag-backup.tar.gz
 
@@ -832,8 +832,8 @@ cp docker-compose.yml /opt/thinx/
 
 # 3. Start services
 cd /opt/thinx
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 
 # 4. Restore user data
 docker cp data/ thinx_backend:/app/
@@ -841,12 +841,12 @@ docker cp uploads/ thinx_backend:/app/
 
 # 5. Restore AllegroGraph
 docker cp ag-backup.tar.gz thinx_allegrograph:/tmp/
-docker-compose exec allegrograph agraph-restore \
+docker compose exec allegrograph agraph-restore \
   --input /tmp/ag-backup.tar.gz \
   --repo humantrafficking
 
 # 6. Restart services
-docker-compose restart
+docker compose restart
 
 echo "Recovery complete"
 ```
@@ -859,12 +859,12 @@ echo "Recovery complete"
 
 #### Services Won't Start
 
-**Symptom:** `docker-compose up` fails
+**Symptom:** `docker compose up` fails
 
 **Diagnosis:**
 ```bash
-docker-compose logs
-docker-compose ps
+docker compose logs
+docker compose ps
 ```
 
 **Solutions:**
@@ -879,14 +879,14 @@ docker-compose ps
 
 **Diagnosis:**
 ```bash
-docker-compose logs backend
+docker compose logs backend
 curl http://localhost:5000/api/health
 ```
 
 **Solutions:**
 - Check AllegroGraph connection
 - Verify environment variables
-- Restart backend: `docker-compose restart backend`
+- Restart backend: `docker compose restart backend`
 
 #### Database Connection Failures
 
@@ -895,7 +895,7 @@ curl http://localhost:5000/api/health
 **Diagnosis:**
 ```bash
 # Check AllegroGraph is running
-docker-compose ps allegrograph
+docker compose ps allegrograph
 
 # Test connection
 curl -u admin:password http://localhost:10035/repositories
@@ -903,9 +903,9 @@ curl -u admin:password http://localhost:10035/repositories
 
 **Solutions:**
 - Verify credentials in `.env`
-- Check AllegroGraph logs: `docker-compose logs allegrograph`
+- Check AllegroGraph logs: `docker compose logs allegrograph`
 - Ensure repository exists
-- Restart database: `docker-compose restart allegrograph`
+- Restart database: `docker compose restart allegrograph`
 
 #### AI Smart Mapper Not Working
 
@@ -913,7 +913,7 @@ curl -u admin:password http://localhost:10035/repositories
 
 **Diagnosis:**
 ```bash
-docker-compose logs ollama
+docker compose logs ollama
 curl http://localhost:11434/api/tags
 ```
 
@@ -1035,9 +1035,9 @@ Use this checklist before deploying Thinx to production.
 **Initial Deployment:**
 - [ ] Cloned repository to `/opt/thinx` (or chosen location)
 - [ ] Created `.env` file with production configuration
-- [ ] Built and started containers: `docker-compose --profile full up -d`
-- [ ] Verified all containers are running: `docker-compose ps`
-- [ ] Checked logs for errors: `docker-compose logs`
+- [ ] Built and started containers: `docker compose --profile full up -d`
+- [ ] Verified all containers are running: `docker compose ps`
+- [ ] Checked logs for errors: `docker compose logs`
 
 **Database Initialization:**
 - [ ] Created AllegroGraph repository via WebView

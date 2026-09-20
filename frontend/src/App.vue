@@ -86,6 +86,7 @@
 
 <script>
 import Toast from './components/Toast.vue'
+import api from './services/api'
 
 export default {
   name: 'App',
@@ -103,21 +104,26 @@ export default {
       toast: this.$refs.toast
     }
   },
-  mounted() {
-    // Check if user is already logged in
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        this.user = JSON.parse(storedUser);
-      } catch (e) {
-        // Invalid stored user data, clear it
-        if (import.meta.env.MODE === 'development') {
-          console.error('Error parsing stored user:', e);
-        }
+  async mounted() {
+    // Ask the server who is signed in. The browser's copy of the profile is only
+    // used to render the header; the server decides what may be accessed, so a
+    // stale or edited localStorage entry grants nothing (finding C1).
+    try {
+      const session = await api.getSession();
+      this.user = session.authenticated ? session.user : null;
+      if (session.authenticated) {
+        localStorage.setItem('user', JSON.stringify(session.user));
+      } else {
         localStorage.removeItem('user');
       }
+    } catch (e) {
+      this.user = null;
+      localStorage.removeItem('user');
+      if (import.meta.env.MODE === 'development') {
+        console.error('Could not read the session:', e);
+      }
     }
-    
+
     // Redirect to login if not logged in and not on auth pages
     if (!this.user && !['Login', 'Register'].includes(this.$route.name)) {
       this.$router.push('/login');
@@ -128,8 +134,16 @@ export default {
       this.user = userData;
       this.showHelp = false;
     },
-    handleLogout() {
+    async handleLogout() {
       if (confirm('Are you sure you want to logout?')) {
+        try {
+          // Destroy the session on the server, not only in the browser.
+          await api.logout();
+        } catch (e) {
+          if (import.meta.env.MODE === 'development') {
+            console.error('Logout call failed:', e);
+          }
+        }
         this.user = null;
         this.showHelp = false;
         localStorage.removeItem('user');

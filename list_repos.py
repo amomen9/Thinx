@@ -3,13 +3,19 @@
 List all repositories in AllegroGraph
 """
 
+import os
 import requests
 from requests.auth import HTTPBasicAuth
 
-AGRAPH_HOST = "https://ag1s5fv23e82hv78.allegrograph.cloud"
-AGRAPH_PORT = 10035
-AGRAPH_USER = "Admin"
-AGRAPH_PASSWORD = "moVzCHbrYZ9XdRipk18Pg1"
+# Finding H1: this file used to carry a hosted AllegroGraph endpoint and a live
+# password. Everything now comes from the environment, and the script refuses to
+# run rather than falling back to a default credential.
+AGRAPH_HOST = os.getenv("AGRAPH_HOST", "localhost")
+AGRAPH_PORT = int(os.getenv("AGRAPH_PORT", 10035))
+AGRAPH_USER = os.getenv("AGRAPH_USER", "admin")
+AGRAPH_PASSWORD = os.getenv("AGRAPH_PASSWORD")
+if not AGRAPH_PASSWORD:
+    raise SystemExit("AGRAPH_PASSWORD is not set. Export it before running this script.")
 
 BASE_URL = f"http://{AGRAPH_HOST}:{AGRAPH_PORT}"
 

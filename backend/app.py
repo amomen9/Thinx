@@ -17,21 +17,43 @@ import json
 from pathlib import Path
 from datetime import datetime
 from werkzeug.exceptions import HTTPException
-from models import Connection, ConnectionManager, UserManager
+import auth
+from auth import admin_required, current_user, login_required, public
+from models import Connection, ConnectionManager, UserManager, public_connection
 from utils.allegrograph import AllegroGraphClient
 from utils.ai_mapper import SmartMapper
 from utils.fair_data_point import FairDataPointClient
 
 app = Flask(__name__)
 
-# Enable CORS for Vue.js frontend
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ["http://localhost", "http://localhost:8080"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }
-})
+IS_PRODUCTION = os.getenv('FLASK_ENV', 'production') == 'production'
+
+# Sessions and cookies (finding C1).
+auth.configure(app)
+
+# Enable CORS for the Vue.js frontend. The allowed origins come from the
+# environment so that a deployment on a server does not need a code change
+# (finding L2); credentials are allowed because the session lives in a cookie.
+CORS(app,
+     resources={r"/api/*": {
+         "origins": [o.strip() for o in os.getenv(
+             'CORS_ORIGINS', 'http://localhost,http://localhost:8080').split(',') if o.strip()],
+         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         "allow_headers": ["Content-Type", "Authorization"],
+     }},
+     supports_credentials=True)
+
+
+def safe_error(exc, message='Request failed'):
+    """Error payload for clients.
+
+    Finding M6: raw exception text (including filesystem paths) used to be sent to
+    whoever made the request. The detail now stays in the server log unless the
+    service is explicitly running in development mode.
+    """
+    app.logger.exception(exc)
+    detail = str(exc) if not IS_PRODUCTION else None
+    return {'success': False, 'error': message if detail is None else f'{message}: {detail}'}
 
 # Configuration
 DATA_DIR = Path(__file__).parent / 'data'
@@ -51,6 +73,9 @@ user_manager = UserManager(USERS_FILE)
 # Allowed file extensions for data uploads
 ALLOWED_EXTENSIONS = {'.csv', '.xlsx', '.xls', '.json'}
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
+
+# The only notebooks /api/run-notebook may execute (finding H3).
+PIPELINE_NOTEBOOKS = {'processing.ipynb', 'json_creator.ipynb'}
 
 
 def validate_file_upload(file):
@@ -133,12 +158,10 @@ def handle_exception(error):
     
     # Log the error for debugging
     app.logger.error(f"Unhandled exception: {str(error)}", exc_info=True)
-    
-    # Return generic error response
-    return jsonify({
-        'success': False,
-        'error': f'Internal server error: {str(error)}'
-    }), 500
+
+    # Return generic error response (finding M6: no exception text for clients
+    # unless the service is explicitly running in development mode)
+    return jsonify(safe_error(error, 'Internal server error')), 500
 
 
 @app.errorhandler(404)
@@ -164,6 +187,7 @@ def method_not_allowed(error):
 # ============================================================================
 
 @app.route('/api/health', methods=['GET'])
+@public
 def health_check():
     """
     Health check endpoint for Docker container monitoring.
@@ -182,7 +206,21 @@ def health_check():
 
 
 # Authentication endpoints
+@app.route('/api/session', methods=['GET'])
+@public
+def session_state():
+    """Who is signed in, if anyone. The frontend calls this on load."""
+    user = current_user()
+    return jsonify({
+        'success': True,
+        'authenticated': user is not None,
+        'user': user,
+        'setup_required': not user_manager.has_users(),
+    }), 200
+
+
 @app.route('/api/register', methods=['POST'])
+@public
 def register():
     """
     Register a new user account.
@@ -202,40 +240,50 @@ def register():
         }
         
     Note:
-        Passwords are hashed using SHA256. User data stored locally only.
+        Passwords are hashed with PBKDF2-HMAC-SHA256 and a per-user salt. User data
+        is stored locally only. The first account created becomes the administrator;
+        after that, self-registration can be switched off with ALLOW_REGISTRATION=false.
     """
     try:
         data = request.get_json()
         username = data.get('username', '').strip()
         password = data.get('password', '')
-        
+
         if not username or not password:
             return jsonify({
                 'success': False,
                 'error': 'Username and password are required'
             }), 400
-        
+
+        first_account = not user_manager.has_users()
+        if not first_account and os.getenv('ALLOW_REGISTRATION', 'True').lower() != 'true':
+            return jsonify({
+                'success': False,
+                'error': 'Self-registration is disabled. Ask an administrator for an account.'
+            }), 403
+
         if len(username) < 3:
             return jsonify({
                 'success': False,
                 'error': 'Username must be at least 3 characters'
             }), 400
         
-        if len(password) < 6:
+        min_length = int(os.getenv('MIN_PASSWORD_LENGTH', 12))
+        if len(password) < min_length:
             return jsonify({
                 'success': False,
-                'error': 'Password must be at least 6 characters'
+                'error': f'Password must be at least {min_length} characters'
             }), 400
-        
+
         user = user_manager.create_user(username, password)
-        
+
         # Remove password hash from response
         user_data = {k: v for k, v in user.items() if k != 'password_hash'}
-        
+
         return jsonify({
             'success': True,
             'user': user_data,
-            'message': 'User registered successfully'
+            'message': 'Administrator account created' if first_account else 'User registered successfully'
         }), 201
         
     except ValueError as e:
@@ -251,6 +299,7 @@ def register():
 
 
 @app.route('/api/login', methods=['POST'])
+@public
 def login():
     """
     Authenticate user with username and password.
@@ -271,7 +320,8 @@ def login():
         
     Note:
         All authentication is local. No external services involved.
-        Session management handled client-side for stateless API.
+        A successful login opens a server-side session held in a signed, HttpOnly
+        cookie; the browser no longer decides who is logged in (finding C1).
     """
     try:
         data = request.get_json()
@@ -287,6 +337,8 @@ def login():
         user = user_manager.authenticate(username, password)
         
         if user:
+            auth.start_session(user)
+            app.logger.info("login succeeded for '%s' from %s", username, request.remote_addr)
             # Remove password hash from response
             user_data = {k: v for k, v in user.items() if k != 'password_hash'}
             return jsonify({
@@ -295,21 +347,21 @@ def login():
                 'message': 'Login successful'
             }), 200
         else:
+            app.logger.warning("login failed for '%s' from %s", username, request.remote_addr)
             return jsonify({
                 'success': False,
                 'error': 'Invalid username or password'
             }), 401
-            
+
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Login failed: {str(e)}'
-        }), 500
+        return jsonify(safe_error(e, 'Login failed')), 500
 
 
 @app.route('/api/logout', methods=['POST'])
+@public
 def logout():
-    """Logout user (client-side session management)"""
+    """Log out: the server-side session is destroyed."""
+    auth.end_session()
     return jsonify({
         'success': True,
         'message': 'Logout successful'
@@ -318,6 +370,7 @@ def logout():
 
 # Admin endpoints
 @app.route('/api/admin/users', methods=['GET'])
+@admin_required
 def get_all_users():
     """Get all users (admin only)"""
     try:
@@ -335,6 +388,7 @@ def get_all_users():
 
 
 @app.route('/api/admin/users/<user_id>', methods=['PUT'])
+@admin_required
 def update_user(user_id):
     """Update user details (admin only)"""
     try:
@@ -360,6 +414,7 @@ def update_user(user_id):
 
 
 @app.route('/api/admin/users/<user_id>', methods=['DELETE'])
+@admin_required
 def delete_user(user_id):
     """Delete user (admin only)"""
     try:
@@ -472,7 +527,7 @@ def get_connections():
         connections = connection_manager.get_all_connections(user_id=user_id)
         return jsonify({
             'success': True,
-            'connections': connections,
+            'connections': [public_connection(c) for c in connections],
             'count': len(connections)
         }), 200
     except Exception as e:
@@ -585,7 +640,7 @@ def create_connection():
         return jsonify({
             'success': True,
             'message': 'Connection created successfully',
-            'connection': saved_connection
+            'connection': public_connection(saved_connection)
         }), 201
         
     except Exception as e:
@@ -609,7 +664,7 @@ def get_connection(connection_id):
         
         return jsonify({
             'success': True,
-            'connection': connection
+            'connection': public_connection(connection)
         }), 200
         
     except Exception as e:
@@ -635,7 +690,7 @@ def update_connection(connection_id):
         return jsonify({
             'success': True,
             'message': 'Connection updated successfully',
-            'connection': updated_connection
+            'connection': public_connection(updated_connection)
         }), 200
         
     except Exception as e:
@@ -707,7 +762,7 @@ def get_active_connection():
         
         return jsonify({
             'success': True,
-            'connection': active_connection
+            'connection': public_connection(active_connection)
         }), 200
         
     except Exception as e:
@@ -1165,38 +1220,42 @@ def validate_data():
 
 @app.route('/api/run-notebook', methods=['POST'])
 def run_notebook():
-    """Execute a Jupyter notebook"""
+    """Execute one of the two pipeline notebooks.
+
+    Finding H3: this endpoint used to accept any path that ended in '.ipynb' and
+    join it onto the mounted project directory, so a relative path could walk out
+    of it and any notebook on the volume could be executed. The notebook is now
+    picked from a fixed allowlist and the resolved path is checked to be inside
+    the pipeline directory.
+    """
     import subprocess
     import sys
-    
+
     try:
         data = request.get_json()
         notebook = data.get('notebook')
-        
-        if not notebook or not notebook.endswith('.ipynb'):
-            return jsonify({'error': 'Invalid notebook name'}), 400
-        
-        # Use /workspace which is mounted from root directory in docker-compose
-        base_dir = Path('/workspace')
-        notebook_path = base_dir / notebook
-        
-        print(f"[Notebook] Looking for notebook at: {notebook_path}")
-        print(f"[Notebook] Base directory: {base_dir}")
-        print(f"[Notebook] Notebook exists: {notebook_path.exists()}")
-        
-        if not notebook_path.exists():
-            # List files in base_dir for debugging
-            try:
-                files = list(base_dir.glob('*.ipynb'))
-                print(f"[Notebook] Available .ipynb files: {[f.name for f in files]}")
-            except:
-                pass
+
+        if notebook not in PIPELINE_NOTEBOOKS:
             return jsonify({
-                'error': f'Notebook not found: {notebook}',
-                'path': str(notebook_path),
-                'base_dir': str(base_dir)
+                'success': False,
+                'error': f"Unknown notebook. Allowed: {', '.join(sorted(PIPELINE_NOTEBOOKS))}"
+            }), 400
+
+        # Use /workspace which is mounted from root directory in docker-compose
+        base_dir = Path('/workspace').resolve()
+        notebook_path = (base_dir / notebook).resolve()
+
+        if not notebook_path.is_relative_to(base_dir):
+            app.logger.warning("rejected notebook path outside the workspace: %s", notebook)
+            return jsonify({'success': False, 'error': 'Invalid notebook name'}), 400
+
+        if not notebook_path.exists():
+            app.logger.error("notebook missing on disk: %s", notebook_path)
+            return jsonify({
+                'success': False,
+                'error': f'Notebook not found: {notebook}'
             }), 404
-        
+
         # Run the notebook using nbconvert
         result = subprocess.run(
             [sys.executable, '-m', 'jupyter', 'nbconvert', '--to', 'notebook', 
@@ -2035,5 +2094,18 @@ def get_fair_catalog_details(catalog_id: str):
         }), 500
 
 
+# Close every route that is not explicitly marked @public, including any route
+# added in future (finding C1). This must run after all routes are registered.
+auth.install_guard(app)
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Finding H2: debug mode is off unless it is asked for explicitly. With
+    # FLASK_ENV=production (the default) the Werkzeug debugger is never exposed.
+    debug = os.getenv('FLASK_DEBUG', '0').lower() in ('1', 'true', 'yes') and not IS_PRODUCTION
+    if debug:
+        app.logger.warning("Starting with the Werkzeug debugger enabled. "
+                           "Never do this on a shared or reachable host.")
+    app.run(host=os.getenv('FLASK_HOST', '0.0.0.0'),
+            port=int(os.getenv('FLASK_PORT', 5000)),
+            debug=debug)

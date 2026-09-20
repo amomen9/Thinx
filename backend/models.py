@@ -3,12 +3,31 @@ Data Models for Connection Manager
 Common Data Model (CDM) definitions
 """
 
+import hashlib
+import hmac
 import json
+import os
+import secrets
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
-import hashlib
+
+# Password hashing (finding H4). PBKDF2-HMAC-SHA256 with a per-user salt, from the
+# standard library so no new dependency is needed. Hashes are stored as:
+#   pbkdf2_sha256$<iterations>$<salt hex>$<derived key hex>
+# Hashes written by older versions (bare SHA-256) are still accepted at login and
+# are rewritten in the new format on the next successful login.
+PBKDF2_ALGORITHM = 'pbkdf2_sha256'
+PBKDF2_ITERATIONS = 600_000
+
+
+def public_connection(connection: Dict) -> Dict:
+    """Return a connection safe to send to a client: the password is never included.
+
+    Finding C3: the API used to return stored database credentials in clear text.
+    """
+    return {k: v for k, v in connection.items() if k != 'password'}
 
 
 class User:
@@ -54,12 +73,29 @@ class User:
     
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash a password using SHA256"""
-        return hashlib.sha256(password.encode()).hexdigest()
-    
+        """Hash a password with PBKDF2-HMAC-SHA256 and a fresh random salt."""
+        salt = secrets.token_bytes(16)
+        derived = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, PBKDF2_ITERATIONS)
+        return f"{PBKDF2_ALGORITHM}${PBKDF2_ITERATIONS}${salt.hex()}${derived.hex()}"
+
+    @staticmethod
+    def is_legacy_hash(password_hash: str) -> bool:
+        """True for hashes written before the PBKDF2 change (bare SHA-256)."""
+        return bool(password_hash) and not password_hash.startswith(PBKDF2_ALGORITHM + '$')
+
     def verify_password(self, password: str) -> bool:
-        """Verify password matches hash"""
-        return self.password_hash == User.hash_password(password)
+        """Verify a password against either hash format, in constant time."""
+        stored = self.password_hash or ''
+        if User.is_legacy_hash(stored):
+            legacy = hashlib.sha256(password.encode()).hexdigest()
+            return hmac.compare_digest(stored, legacy)
+        try:
+            _, iterations, salt_hex, key_hex = stored.split('$')
+            derived = hashlib.pbkdf2_hmac('sha256', password.encode(),
+                                          bytes.fromhex(salt_hex), int(iterations))
+        except (ValueError, TypeError):
+            return False
+        return hmac.compare_digest(derived.hex(), key_hex)
 
 
 class Connection:
@@ -155,11 +191,20 @@ class UserManager:
         self._ensure_storage()
     
     def _ensure_storage(self):
-        """Create storage file if it doesn't exist"""
+        """Create an empty user store if it does not exist.
+
+        Finding C2: this used to create an 'admin' account with the password 'admin'
+        on every fresh installation. It now starts empty; the first account that
+        registers becomes the administrator (see create_user), so there is never a
+        published default password.
+        """
         if not self.storage_path.exists():
-            # Create default admin user
-            admin = User('admin', User.hash_password('admin'), is_admin=True)
-            self.storage_path.write_text(json.dumps([admin.to_dict()], indent=2))
+            self.storage_path.write_text('[]')
+            os.chmod(self.storage_path, 0o600)
+
+    def has_users(self) -> bool:
+        """True once at least one account exists."""
+        return bool(self._load_users())
     
     def _load_users(self) -> List[Dict]:
         """Load users from storage"""
@@ -172,7 +217,8 @@ class UserManager:
     def _save_users(self, users: List[Dict]):
         """Save users to storage"""
         self.storage_path.write_text(json.dumps(users, indent=2))
-    
+        os.chmod(self.storage_path, 0o600)
+
     def authenticate(self, username: str, password: str) -> Optional[Dict]:
         """Authenticate user and return user dict if valid"""
         users = self._load_users()
@@ -181,9 +227,14 @@ class UserManager:
             if user.username == username and user.verify_password(password):
                 # Update last login
                 user_data['last_login'] = datetime.utcnow().isoformat()
+                # Transparently upgrade a legacy SHA-256 hash now that we have
+                # the plaintext password in hand (finding H4).
+                if User.is_legacy_hash(user_data.get('password_hash', '')):
+                    user_data['password_hash'] = User.hash_password(password)
                 self._save_users(users)
                 # Return user data without password hash
                 user_dict = user.to_dict()
+                user_dict['password_hash'] = None
                 return user_dict
         return None
     
@@ -203,19 +254,25 @@ class UserManager:
     
     def create_user(self, username: str, password: str, is_admin: bool = False,
                    email: str = None, full_name: str = None) -> Dict:
-        """Create new user"""
+        """Create new user.
+
+        The very first account created on a fresh installation becomes the
+        administrator; this replaces the old built-in admin/admin account (C2).
+        """
         users = self._load_users()
-        
+
         # Check if username exists
         for user in users:
             if user['username'] == username:
                 raise ValueError(f"Username '{username}' already exists")
-        
-        new_user = User(username, User.hash_password(password), 
-                       is_admin=is_admin, email=email, full_name=full_name)
+
+        new_user = User(username, User.hash_password(password),
+                       is_admin=is_admin or not users, email=email, full_name=full_name)
         users.append(new_user.to_dict())
         self._save_users(users)
-        return new_user.to_dict()
+        created = new_user.to_dict()
+        created['password_hash'] = None
+        return created
     
     def update_user(self, user_id: str, updates: Dict) -> Optional[Dict]:
         """Update user details (admin only)"""

@@ -4,7 +4,7 @@ This document explains how to run different combinations of services.
 
 ## Profiles Available
 
-The docker-compose configuration uses profiles to allow flexible service selection:
+The docker compose configuration uses profiles to allow flexible service selection:
 
 - **full** - All services (frontend + backend + allegrograph + AI)
 - **no-ai** - Standard stack (frontend + backend + allegrograph)
@@ -23,7 +23,7 @@ The docker-compose configuration uses profiles to allow flexible service selecti
 Starts frontend, backend, AllegroGraph, and Ollama AI:
 
 ```bash
-docker-compose --profile full up --build
+docker compose --profile full up --build
 ```
 
 ### 2. Standard Stack (No AI)
@@ -31,7 +31,7 @@ docker-compose --profile full up --build
 Starts frontend, backend, and AllegroGraph (lighter weight):
 
 ```bash
-docker-compose --profile no-ai up --build
+docker compose --profile no-ai up --build
 ```
 
 ### 3. Minimal Stack (No AI, No AllegroGraph)
@@ -39,7 +39,7 @@ docker-compose --profile no-ai up --build
 Use this when you have AllegroGraph running elsewhere:
 
 ```bash
-docker-compose --profile minimal up --build
+docker compose --profile minimal up --build
 ```
 
 **Access:**
@@ -67,7 +67,7 @@ docker-compose --profile minimal up --build
 Useful for API-only access or custom frontend:
 
 ```bash
-docker-compose --profile backend --profile allegrograph up --build
+docker compose --profile backend --profile allegrograph up --build
 ```
 
 **Access:**
@@ -82,13 +82,13 @@ Start one service at a time:
 
 ```bash
 # Frontend only
-docker-compose up --build frontend
+docker compose up --build frontend
 
 # Backend only
-docker-compose up --build backend
+docker compose up --build backend
 
 # AllegroGraph only
-docker-compose up --build allegrograph
+docker compose up --build allegrograph
 ```
 
 ---
@@ -112,7 +112,7 @@ VITE_API_URL=http://localhost:5000
 Then start without AllegroGraph:
 
 ```bash
-docker-compose up --build frontend backend
+docker compose up --build frontend backend
 ```
 
 ### Using Docker AllegroGraph
@@ -127,7 +127,7 @@ AGRAPH_PORT=10035
 Then start full stack:
 
 ```bash
-docker-compose --profile full up --build
+docker compose --profile full up --build
 ```
 
 ---
@@ -146,7 +146,7 @@ You have AllegroGraph running on your host machine at `localhost:10035`.
    ```
 2. Start without Docker AllegroGraph:
    ```bash
-   docker-compose up --build frontend backend
+   docker compose up --build frontend backend
    ```
 
 ### Scenario 2: Production with Remote AllegroGraph
@@ -163,7 +163,7 @@ You have AllegroGraph on a remote server.
    ```
 2. Start without Docker AllegroGraph:
    ```bash
-   docker-compose up -d frontend backend
+   docker compose up -d frontend backend
    ```
 
 ### Scenario 3: Testing Backend API Only
@@ -173,10 +173,10 @@ You want to test API endpoints without frontend.
 **Setup:**
 ```bash
 # Start backend + AllegroGraph
-docker-compose --profile backend --profile allegrograph up --build
+docker compose --profile backend --profile allegrograph up --build
 
 # Or
-docker-compose up --build backend allegrograph
+docker compose up --build backend allegrograph
 ```
 
 **Test:**
@@ -195,7 +195,7 @@ Backend is running elsewhere, you only need frontend.
    ```
 2. Start frontend only:
    ```bash
-   docker-compose up --build frontend
+   docker compose up --build frontend
    ```
 
 ---
@@ -204,15 +204,15 @@ Backend is running elsewhere, you only need frontend.
 
 ```bash
 # Stop all running services
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (clears data)
-docker-compose down -v
+docker compose down -v
 
 # Stop specific services
-docker-compose stop frontend
-docker-compose stop backend
-docker-compose stop allegrograph
+docker compose stop frontend
+docker compose stop backend
+docker compose stop allegrograph
 ```
 
 ---
@@ -222,8 +222,8 @@ docker-compose stop allegrograph
 ### "Cannot connect to AllegroGraph"
 
 **If using Docker AllegroGraph:**
-- Ensure it's running: `docker-compose ps`
-- Check logs: `docker-compose logs allegrograph`
+- Ensure it's running: `docker compose ps`
+- Check logs: `docker compose logs allegrograph`
 - Use `AGRAPH_HOST=allegrograph` in `.env`
 
 **If using external AllegroGraph:**
@@ -254,12 +254,12 @@ docker stop <container-id>
 You're trying to start backend without AllegroGraph dependency. Use:
 
 ```bash
-docker-compose up --build backend
+docker compose up --build backend
 ```
 
 Instead of:
 ```bash
-docker-compose --profile backend up --build
+docker compose --profile backend up --build
 ```
 
 ---
@@ -268,12 +268,12 @@ docker-compose --profile backend up --build
 
 | Command | Services Started |
 |---------|------------------|
-| `docker-compose --profile full up` | All (Frontend + Backend + AG) |
-| `docker-compose up frontend backend` | Frontend + Backend only |
-| `docker-compose up backend allegrograph` | Backend + AllegroGraph only |
-| `docker-compose up frontend` | Frontend only |
-| `docker-compose up backend` | Backend only |
-| `docker-compose up allegrograph` | AllegroGraph only |
+| `docker compose --profile full up` | All (Frontend + Backend + AG) |
+| `docker compose up frontend backend` | Frontend + Backend only |
+| `docker compose up backend allegrograph` | Backend + AllegroGraph only |
+| `docker compose up frontend` | Frontend only |
+| `docker compose up backend` | Backend only |
+| `docker compose up allegrograph` | AllegroGraph only |
 
 ---
 
@@ -287,4 +287,4 @@ To change default behavior, add this to your `.env`:
 COMPOSE_PROFILES=full
 ```
 
-Then `docker-compose up` will start all services.
+Then `docker compose up` will start all services.

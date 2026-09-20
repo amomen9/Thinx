@@ -58,8 +58,8 @@ fi
 
 # Check 3: Docker Compose
 echo -e "${YELLOW}[3/6] Checking Docker Compose...${NC}"
-if command -v docker-compose &> /dev/null; then
-    compose_version=$(docker-compose --version)
+if docker compose version &> /dev/null; then
+    compose_version=$(docker compose version)
     echo -e "  ${GREEN}✅ Docker Compose is available: $compose_version${NC}"
     add_check "Docker Compose" "✅ PASS" "$compose_version"
 else
@@ -93,7 +93,7 @@ fi
 
 # Check 5: Port Availability
 echo -e "${YELLOW}[5/6] Checking required ports...${NC}"
-ports=(80 5000 10035 11434)
+ports=(8080 5000 10035 11434)
 ports_in_use=()
 
 for port in "${ports[@]}"; do
@@ -104,7 +104,7 @@ done
 
 if [[ ${#ports_in_use[@]} -eq 0 ]]; then
     echo -e "  ${GREEN}✅ All required ports are available${NC}"
-    add_check "Port Availability" "✅ PASS" "Ports 80, 5000, 10035, 11434 are free"
+    add_check "Port Availability" "✅ PASS" "Ports 8080, 5000, 10035, 11434 are free"
 else
     ports_list=$(IFS=, ; echo "${ports_in_use[*]}")
     echo -e "  ${YELLOW}⚠️  Some ports are in use: $ports_list${NC}"

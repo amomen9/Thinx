@@ -13,6 +13,9 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json'
   },
+  // The API now keeps the session in an HttpOnly cookie, so every request has to
+  // carry it (assessment finding C1). Without this the backend answers 401.
+  withCredentials: true,
   timeout: 150000  // Increased to 150 seconds for AI operations
 })
 
@@ -35,6 +38,14 @@ apiClient.interceptors.response.use(
     return response
   },
   error => {
+    // The session expired or was never established: send the user back to the
+    // login screen instead of showing an empty page full of failed requests.
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('user')
+      if (!window.location.hash.includes('/login') && !window.location.pathname.includes('/login')) {
+        window.location.assign('/login')
+      }
+    }
     // Only log errors in development mode
     if (import.meta.env.MODE === 'development') {
       if (error.response) {
@@ -50,6 +61,27 @@ apiClient.interceptors.response.use(
 )
 
 export default {
+  // Authentication
+  async getSession() {
+    const response = await apiClient.get('/session')
+    return response.data
+  },
+
+  async login(credentials) {
+    const response = await apiClient.post('/login', credentials)
+    return response.data
+  },
+
+  async logout() {
+    const response = await apiClient.post('/logout')
+    return response.data
+  },
+
+  async register(credentials) {
+    const response = await apiClient.post('/register', credentials)
+    return response.data
+  },
+
   // Connection management
   async getConnections(userId = null) {
     const params = userId ? { user_id: userId } : {}

@@ -139,11 +139,15 @@ g.serialize(destination=output_file, format="turtle")
 print(f"RDF data has been successfully generated and saved to {output_file}")
 
 # AllegroGraph Connection Details (from environment variables or defaults)
-repo_name = os.getenv("AGRAPH_REPOSITORY", "human_trafficking_444_inttt")
+repo_name = os.getenv("AGRAPH_REPOSITORY", "humantrafficking")
 host = os.getenv("AGRAPH_HOST", "localhost")
 port = int(os.getenv("AGRAPH_PORT", "10035"))
 username = os.getenv("AGRAPH_USER", "admin")
-password = os.getenv("AGRAPH_PASSWORD", "TUHB-KGDFCpUiTbL")
+password = os.getenv("AGRAPH_PASSWORD")
+if not password:
+    raise SystemExit("AGRAPH_PASSWORD is not set. Export it, or run this through the API, "
+                     "which passes the credentials of the selected connection. "
+                     "Credentials must never be written into this file (finding H1).")
 
 # Convert localhost to allegrograph for Docker networking
 if host == "localhost" or host == "127.0.0.1":

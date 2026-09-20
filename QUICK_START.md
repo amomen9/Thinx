@@ -60,7 +60,7 @@ Tip: Drag the Thinx folder into the terminal window to auto-fill the path.
 
 Copy and paste this command:
 ```bash
-docker-compose --profile full up --build
+docker compose --profile full up --build
 ```
 
 Press Enter and wait. Text will scroll - this is normal.
@@ -85,14 +85,14 @@ Warning: Do not close this terminal window. Leave it running in the background.
 
 **Alternative: Faster startup without AI**
 ```bash
-docker-compose --profile no-ai up --build
+docker compose --profile no-ai up --build
 ```
 
 ---
 
 ## Step 4: Open Thinx in Browser (1 minute)
 
-Open your web browser and go to: **http://localhost**
+Open your web browser and go to: **http://localhost:8080**
 
 Success: You should see the Thinx login page with a purple gradient header.
 
@@ -115,7 +115,7 @@ If you see an error: Wait 30 seconds and refresh - services may still be startin
 
 Enter your username and password and click "Login"
 
-Tip: Bookmark `http://localhost` for easy access.
+Tip: Bookmark `http://localhost:8080` for easy access.
 
 ---
 
@@ -131,7 +131,7 @@ Tip: Bookmark `http://localhost` for easy access.
 
 ### Connect Thinx to Database
 
-1. Go back to **http://localhost**
+1. Go back to **http://localhost:8080**
 2. Click "Add AllegroGraph Connection"
 3. Fill in:
    - **Name:** `My Research Database`
@@ -172,9 +172,9 @@ When done for the day:
 1. Go to the terminal window
 2. Press `Ctrl+C`
 3. Wait for services to stop (10 seconds)
-4. Type: `docker-compose down`
+4. Type: `docker compose down`
 
-Your data is safe. Next time, just run: `docker-compose --profile full up`
+Your data is safe. Next time, just run: `docker compose --profile full up`
 
 ---
 
@@ -205,8 +205,8 @@ Your database is empty. Upload sample data from `Mock data/` folder.
 ### Start fresh / Reset everything
 
 ```bash
-docker-compose down -v    # Warning: Deletes all data
-docker-compose --profile full up --build
+docker compose down -v    # Warning: Deletes all data
+docker compose --profile full up --build
 ```
 
 For more help, see [FAQ.md](FAQ.md) or [README.md#troubleshooting](README.md#troubleshooting)
@@ -237,8 +237,8 @@ Note: You can't break anything by exploring. Click around and learn.
 
 ## Quick Reference
 
-**Start:** `docker-compose --profile full up --build`  
-**Stop:** `Ctrl+C` then `docker-compose down`
+**Start:** `docker compose --profile full up --build`  
+**Stop:** `Ctrl+C` then `docker compose down`
 
 **URLs:**
 - Main app: http://localhost

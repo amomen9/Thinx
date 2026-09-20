@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '../services/api';
 
 export default {
   name: 'Login',
@@ -74,13 +74,15 @@ export default {
       this.loading = true;
 
       try {
-        const response = await axios.post('http://localhost:5000/api/login', {
+        const data = await api.login({
           username: this.username,
           password: this.password
         });
+        const response = { data };
 
         if (response.data.success) {
-          // Store user data in localStorage
+          // Cache the profile for the header only; the session itself lives in an
+          // HttpOnly cookie that the browser cannot read (finding C1).
           localStorage.setItem('user', JSON.stringify(response.data.user));
           
           // Emit login event to parent

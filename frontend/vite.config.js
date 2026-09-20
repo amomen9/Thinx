@@ -13,9 +13,9 @@ export default defineConfig({
       interval: 1000
     },
     hmr: {
-      // Use websocket port for HMR
-      clientPort: 80,
-      // Timeout for HMR connection
+      // Follow the port the page was opened on; hardcoding 80 broke hot reload
+      // because the service is published on 8080 (finding L5).
+      clientPort: Number(process.env.VITE_HMR_CLIENT_PORT) || undefined,
       timeout: 30000
     }
   },

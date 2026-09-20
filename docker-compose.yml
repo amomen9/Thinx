@@ -38,13 +38,13 @@ services:
     container_name: agraph_db        # Name to reference this container
     platform: linux/amd64            # Required for M1/M2 Macs
     ports:
-      - "10035:10035"                # Web interface port
+      - "${BIND_HOST:-127.0.0.1}:10035:10035"                # Web interface port
                                      # Format: "your_computer:container"
                                      # Change first number if port is in use
     environment:
       # Database admin credentials - CHANGE THESE FOR PRODUCTION!
       - AGRAPH_SUPER_USER=admin
-      - AGRAPH_SUPER_PASSWORD=admin1233
+      - AGRAPH_SUPER_PASSWORD=${AGRAPH_SUPER_PASSWORD:?set AGRAPH_SUPER_PASSWORD in .env}
     volumes:
       # Save database files so they survive container restarts
       - agraph_data:/data
@@ -54,7 +54,8 @@ services:
     restart: unless-stopped          # Auto-restart if crash (not on manual stop)
     healthcheck:
       # Docker checks if service is healthy
-      test: ["CMD", "curl", "-f", "http://localhost:10035/"]
+      # curl is not in this image and /bin/sh is dash, so use bash directly (L7)
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/10035"]
       interval: 30s                  # Check every 30 seconds
       timeout: 10s                   # Wait 10 seconds for response
       retries: 3                     # Try 3 times before marking unhealthy
@@ -90,10 +91,11 @@ services:
   # Privacy: 100% local processing - GDPR compliant
   # ===================================================================
   ollama:
-    image: ollama/ollama:latest      # Official Ollama image
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.12.3}   # pinned; 'latest' moves silently (H5).
+                                     # Override with OLLAMA_IMAGE where the registry is unreachable.
     container_name: ollama_service   # Name to reference this container
     ports:
-      - "11434:11434"                # API port for AI communication
+      - "${BIND_HOST:-127.0.0.1}:11434:11434"                # API port for AI communication
     volumes:
       # Store downloaded AI models (persist across restarts)
       - ollama_data:/root/.ollama
@@ -128,13 +130,17 @@ services:
       dockerfile: Dockerfile         # Using Dockerfile in that folder
     container_name: flask_api        # Name to reference this container
     ports:
-      - "5000:5000"                  # API port
+      - "${BIND_HOST:-127.0.0.1}:5000:5000"                  # API port
                                      # Change first 5000 if port is in use
     environment:
       # Flask configuration
       - FLASK_APP=app.py             # Main application file
-      - FLASK_ENV=development        # Development mode (shows errors)
-      - FLASK_DEBUG=1                # Enable debugging
+      - FLASK_ENV=${FLASK_ENV:-production}   # production keeps the Werkzeug debugger off (H2)
+      - FLASK_DEBUG=${FLASK_DEBUG:-0}        # never 1 on a reachable host
+      - SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in .env}   # signs the session cookie (C1)
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8080}
+      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-true}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
       - PYTHONUNBUFFERED=1           # Show Python output immediately
       
       # AllegroGraph connection settings
@@ -142,7 +148,7 @@ services:
       - AGRAPH_HOST=${AGRAPH_HOST:-allegrograph}  # Use 'allegrograph' for Docker, 'localhost' for external
       - AGRAPH_PORT=${AGRAPH_PORT:-10035}
       - AGRAPH_SUPER_USER=${AGRAPH_SUPER_USER:-admin}
-      - AGRAPH_SUPER_PASSWORD=${AGRAPH_SUPER_PASSWORD:-admin123}
+      - AGRAPH_SUPER_PASSWORD=${AGRAPH_SUPER_PASSWORD:?set AGRAPH_SUPER_PASSWORD in .env}
       
       # 💡 To use external database:
       #   Set these in .env file or command line:
@@ -198,7 +204,7 @@ services:
       target: development            # Development build with hot-reload
     container_name: vue_ui           # Name to reference this container
     ports:
-      - "8080:80"                      # Web interface port (standard HTTP)
+      - "${BIND_HOST:-127.0.0.1}:8080:80"                      # Web interface port (standard HTTP)
                                      # 💡 If port 80 is in use, change to "8080:80"
                                      #    then access at http://localhost:8080
     environment:

@@ -63,7 +63,7 @@ Thinx is a research platform designed to help social scientists and humanitarian
 | FAIR Data Discovery | Browse EEPA data catalogs | Find relevant datasets before requesting access |
 | Interactive Dashboards | Point-and-click data exploration | Immediate pattern visibility |
 | AI Smart Mapper | Automatic column organization | Reduces manual data preparation |
-| Privacy Protected | Local data processing | GDPR compliant and secure |
+| Local processing | Data and AI models stay on your own infrastructure | Nothing is sent to an external service |
 
 For detailed usage instructions, see [USER_GUIDE.md](USER_GUIDE.md).
 
@@ -127,13 +127,13 @@ Choose deployment option:
 **Option A: Full System (Recommended)**
 Includes database, AI features, and interface.
 ```bash
-docker-compose --profile full up --build
+docker compose --profile full up --build
 ```
 
 **Option B: Without AI Features**
 Faster startup, excludes automatic data mapping.
 ```bash
-docker-compose --profile no-ai up --build
+docker compose --profile no-ai up --build
 ```
 
 **Step 5: Wait for Startup**
@@ -145,7 +145,7 @@ Initial startup: 2-5 minutes
 Subsequent startups: 30-60 seconds
 
 **Step 6: Access Application**
-Open browser to: **http://localhost**
+Open browser to: **http://localhost:8080**
 
 ---
 
@@ -155,7 +155,7 @@ After startup, the following services are available:
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Main Interface | http://localhost | Primary user interface |
+| Main Interface | http://localhost:8080 | Primary user interface |
 | API Server | http://localhost:5000 | Backend (typically not accessed directly) |
 | Database Admin | http://localhost:10035 | Advanced users - raw data access |
 
@@ -191,9 +191,12 @@ Locate and click "Add New Connection" button.
 | Port | Network port | Usually 10035 | `10035` |
 | Repository Name | Specific database | From data provider | `humantrafficking` or `research_data` |
 | Username | Authentication | From data provider | `researcher1` |
-| Password | Authentication | From data provider | (encrypted storage) |
+| Password | Authentication | From data provider | stored on the server, see the note below |
 
-Note: Passwords are encrypted and never displayed after entry.
+Note: database passwords are stored on the server in **backend/data/connections.json** and are
+never sent back to the browser. They are **not** encrypted at rest yet, so that file and the
+volume holding it must be treated as a secret. Use an account with the least privilege the
+work needs, not a database administrator account.
 
 #### Step 3: Save Configuration
 
@@ -287,7 +290,7 @@ This system adheres to FAIR-OLR (Findable, Accessible, Interoperable, Reusable -
 The AI Smart Mapper is an experimental feature using local Large Language Models (LLMs) to automatically suggest mappings between data columns and Common Data Model (CDM) fields. This reduces manual work when structuring interview data.
 
 **Key Features:**
-- Local Processing - All data remains on local infrastructure (GDPR compliant)
+- Local processing - the model runs in your own container, so column names and sample values never leave the host
 - Intelligent Mapping - AI understands context and suggests matches
 - Fast Setup - Download models directly from UI
 - High Accuracy - Uses state-of-the-art open-source models
@@ -299,7 +302,7 @@ The AI Smart Mapper is an experimental feature using local Large Language Models
 AI mapper requires Ollama service:
 
 ```bash
-docker-compose --profile full up --build
+docker compose --profile full up --build
 ```
 
 This starts all services including Ollama container.
@@ -395,20 +398,20 @@ python app.py
 cd frontend
 npm install
 npm run dev
-# Server runs on http://localhost:80
+# Server runs on http://localhost:8080
 ```
 
 ### Stopping Application
 
 ```bash
 # Stop containers (preserves data)
-docker-compose stop
+docker compose stop
 
 # Stop and remove containers (preserves data in volumes)
-docker-compose down
+docker compose down
 
 # Stop and remove everything including data
-docker-compose down -v
+docker compose down -v
 ```
 
 ### Architecture
@@ -572,7 +575,7 @@ File: `frontend/src/components/DataViewer.vue`
 
 ```bash
 # Rebuild containers
-docker-compose up --build
+docker compose up --build
 
 # Test application at http://localhost
 ```
@@ -658,22 +661,22 @@ http://localhost:5000/api
 ### Connection refused when accessing http://localhost
 
 **Solution:**
-1. Check if containers are running: `docker-compose ps`
-2. Restart services: `docker-compose restart`
-3. Check logs: `docker-compose logs frontend`
+1. Check if containers are running: `docker compose ps`
+2. Restart services: `docker compose restart`
+3. Check logs: `docker compose logs frontend`
 
 ### Failed to connect to AllegroGraph
 
 **Solution:**
-1. Verify AllegroGraph is running: `docker-compose logs allegrograph`
+1. Verify AllegroGraph is running: `docker compose logs allegrograph`
 2. Check credentials are correct
 3. Try accessing directly: http://localhost:10035
 
 ### Frontend shows "API Error: No response from server"
 
 **Solution:**
-1. Check backend is running: `docker-compose ps backend`
-2. Check backend logs: `docker-compose logs backend`
+1. Check backend is running: `docker compose ps backend`
+2. Check backend logs: `docker compose logs backend`
 3. Verify CORS is enabled in `backend/app.py`
 
 ### No data found in repository
@@ -688,10 +691,10 @@ http://localhost:5000/api
 **Solution:**
 ```bash
 # Rebuild containers
-docker-compose up --build
+docker compose up --build
 
 # Or rebuild specific service
-docker-compose up --build backend
+docker compose up --build backend
 ```
 
 ### Port already in use
@@ -760,12 +763,17 @@ See `Mock data/README.md` for detailed usage instructions and CDM mapping exampl
 
 ### Ethical Considerations
 
-All data is:
-- Anonymized - No personally identifiable information
-- Consent-based - Collected with participant permission
-- GDPR compliant - Sensitive fields marked and protected
-- Research-only - For academic and humanitarian purposes
-- Mock data available - Safe testing data in `Mock data/` folder
+Expectations for anyone running this platform:
+- Pseudonymised at source - the platform does not anonymise anything for you
+- Consent-based - only load data you have permission to process
+- Special-category data - routes, abuses and sexual violence fields fall under GDPR
+  Article 9, and trafficker records under Article 10, so a DPIA, access control,
+  access logging and a retention rule are your responsibility
+- Research-only - for academic and humanitarian purposes
+- Mock data available - safe testing data in `Mock data/` folder
+
+Security status: this is a research prototype. See SECURITY_FIXES.md for what has
+been hardened on this branch and what is still open.
 
 ---
 
@@ -777,7 +785,7 @@ This project includes experimental AI integration using [Ollama](https://ollama.
 
 1. Start application with AI profile:
    ```bash
-   docker-compose --profile ai up --build
+   docker compose --profile ai up --build
    ```
 
 2. Pull LLM model (first time only):
