@@ -119,8 +119,20 @@ If the wait loop is still running after about 5 minutes, press Ctrl+C and look a
 
 ## Step 8 - Pull the AI model (full profile only)
 
-    docker exec ollama_service ollama pull llama3     # ~4.7 GB, the model the API asks for by default
-    docker exec ollama_service ollama list
+```shell
+docker exec ollama_service ollama pull llama3     # ~4.7 GB, the model the API asks for by default
+
+# Other models:
+# Lighter:
+# docker exec -it ollama_service ollama pull phi3
+
+# Another Heavy model:
+# docker exec -it ollama_service ollama pull phi4
+
+# Get list of installed models:
+docker exec ollama_service ollama list
+
+```
 
 Any other Ollama model works too; pick it in the interface, or pull it from there.
 
