@@ -1,13 +1,13 @@
 # Deploying Thinx on a Linux machine with Docker
 
-Step-by-step deployment, first written on 2026-09-18 for upstream **main** (commit 0b4cd0d) and
-updated on 2026-09-20 for this branch. Every box can be pasted as it stands.
+Step-by-step deployment. I wrote this on 2026-09-18 for upstream **main** (commit 0b4cd0d) and
+updated it on 2026-09-20 for this branch. Every box can be pasted as it stands.
 
-Branch "Ali" fixes most of the traps the original instructions had to work around. The steps that
-are no longer needed are kept at the end of this file, under **Appendix**, so the history of what
-was wrong is not lost.
+Branch "Ali" fixes most of the traps we had to work around the first time. I have kept the steps
+that are no longer needed at the end of this file, under **Appendix**, so the history of what was
+wrong is not lost.
 
-## What you get
+## What the stack provides
 
 | Service | Container | Reachable at | Purpose |
 |---|---|---|---|
@@ -16,7 +16,7 @@ was wrong is not lost.
 | Database | agraph_db | http://localhost:10035 | AllegroGraph triple store, admin UI |
 | AI | ollama_service | http://localhost:11434 | Local model for the Smart Mapper |
 
-All four bind to **127.0.0.1** by default, so nothing is exposed to the network until you decide it
+All four bind to **127.0.0.1** by default, so nothing is exposed to the network until we decide it
 should be. See step 4.
 
 ---
@@ -46,21 +46,21 @@ should be. See step 4.
     cd /opt/thinx && git log -1 --oneline
 
 The first line of that log should be the security hardening commit. If it says
-**Update push_to_allegrograph.py** instead, the branch has not been pushed yet and you have upstream
-code: copy the working tree across instead of cloning, or push the branch first.
+**Update push_to_allegrograph.py** instead, the branch has not been pushed yet and the clone holds
+upstream code: copy the working tree across instead of cloning, or push the branch first.
 
-## Step 4 - Decide how you will reach it
+## Step 4 - Decide how the platform will be reached
 
-**Path A (recommended).** You use the machine itself, or your laptop through an SSH tunnel. Nothing
-is published to the network and no extra configuration is needed: the default **BIND_HOST=127.0.0.1**
-already does this.
+**Path A (recommended).** The platform is used on the machine itself, or from a laptop through an
+SSH tunnel. Nothing is published to the network and no extra configuration is needed: the default
+**BIND_HOST=127.0.0.1** already does this.
 
 **Path B.** Other machines open it by the server's IP address. This exposes the interface and the API
-to your network, so only do it on a network you trust, and put TLS in front of it before anyone
-outside the team uses it. Two variables in step 5 have to change:
+to the local network, so it is only for a network we trust, and TLS belongs in front of it before
+anyone outside the team uses it. Two variables in step 5 have to change:
 
     BIND_HOST=0.0.0.0
-    VITE_API_URL=http://192.168.1.50:5000      # your server's IP
+    VITE_API_URL=http://192.168.1.50:5000      # the server's IP
     CORS_ORIGINS=http://192.168.1.50:8080      # how the browser addresses it
 
 The database and the AI service stay on 127.0.0.1 in both paths. There is no reason for anything
@@ -78,9 +78,9 @@ else to reach them directly.
     grep -E '^(COMPOSE_PROFILES|BIND_HOST|FLASK_ENV|VITE_API_URL|CORS_ORIGINS)=' .env
     echo "Database password: $(grep '^AGRAPH_SUPER_PASSWORD=' .env | cut -d= -f2)"
 
-Write that database password down. You type it into the interface once, in step 9. It is applied
-when the database volume is first created, so changing it in **.env** later does not change the
-database.
+That database password has to be written down; it is typed into the interface once, in step 9. It
+is applied when the database volume is first created, so changing it in **.env** later does not
+change the database.
 
 Set **COMPOSE_PROFILES=no-ai** in **.env** if the machine has less than about 16 GB of RAM. Everything
 works except the AI Smart Mapper.
@@ -125,12 +125,12 @@ Any other Ollama model works too; pick it in the interface, or pull it from ther
 ## Step 9 - Open the interface and connect it to the database
 
 - **Path A**, on the machine itself: open http://localhost:8080
-- **Path A**, from your laptop: run the tunnel below, keep it open, then browse to http://localhost:8080
-- **Path B**: open http://your-server-ip:8080
+- **Path A**, from a laptop: run the tunnel below, keep it open, then browse to http://localhost:8080
+- **Path B**: open http://server-ip:8080
 
-The tunnel for the second case, run on your laptop and left open:
+The tunnel for the second case, run on the laptop and left open:
 
-    ssh -N -L 8080:localhost:8080 -L 5000:localhost:5000 -L 11035:localhost:10035 your-user@your-server
+    ssh -N -L 8080:localhost:8080 -L 5000:localhost:5000 -L 11035:localhost:10035 user@server
 
 On Windows, port 10035 usually cannot be used locally because it falls inside a range Windows
 reserves for Hyper-V, which is why the tunnel above maps the database to **11035** instead. The
@@ -196,7 +196,7 @@ Back up **.env** as well, somewhere other than the machine itself. Without
 | Symptom | Cause and fix |
 |---|---|
 | Compose exits with "set AGRAPH_SUPER_PASSWORD in .env" | **.env** is missing or incomplete. Step 5. |
-| Everything answers 401 in the browser | No session. Log in again; if it repeats, the browser origin is not in **CORS_ORIGINS**, or **VITE_API_URL** does not match how you reach the API. |
+| Everything answers 401 in the browser | No session. Log in again; if it repeats, the browser origin is not in **CORS_ORIGINS**, or **VITE_API_URL** does not match how the API is reached. |
 | "Network Error" in the interface | Same cause as above. Recheck step 4 and step 5, then **docker compose up -d**. |
 | "Blocked request. This host is not allowed" | The Vite dev server rejects unknown hostnames. Use the IP address or the SSH tunnel. |
 | Connection test fails in the interface | The host must be **allegrograph**, and the password the one from step 5. |
@@ -207,8 +207,8 @@ Back up **.env** as well, somewhere other than the machine itself. Without
 
 ## Appendix - what the original instructions had to patch on upstream main
 
-Kept for reference. **None of this is needed on branch Ali**; it documents what a deployment of
-upstream **main** (commit 0b4cd0d) required on 2026-09-18, and it is why these fixes exist.
+Kept for reference. **None of this is needed on branch Ali**; it records what our deployment of
+upstream **main** (commit 0b4cd0d) required on 2026-09-18, and it is why we made these fixes.
 
 **1. The database password did not match the documentation.** The compose file hardcoded
 **admin1233** while the backend and every document used **admin123**:
