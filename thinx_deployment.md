@@ -3,7 +3,7 @@
 Step-by-step deployment, first written on 2026-09-18 for upstream **main** (commit 0b4cd0d) and
 updated on 2026-09-20 for this branch. Every box can be pasted as it stands.
 
-Branch Ali fixes most of the traps the original instructions had to work around. The steps that
+Branch "Ali" fixes most of the traps the original instructions had to work around. The steps that
 are no longer needed are kept at the end of this file, under **Appendix**, so the history of what
 was wrong is not lost.
 
