@@ -3,7 +3,7 @@
 **Branch:** Ali of amomen9/Thinx (fork of VODAN-Development/Thinx)
 **Base commit:** 0b4cd0d
 **Date:** 2026-09-20
-**Author:** Ali Momen, DSIP FieldLab Team Thinx, with Claude Opus 5 (see the AI usage log in the assessment folder)
+**Author:** Ali Momen, DSIP FieldLab Team Thinx
 
 These changes close the findings of the assessment of 2026-09-19. Three of the critical
 findings were reproduced on a running deployment before the work started, and the same
