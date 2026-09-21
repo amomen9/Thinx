@@ -134,7 +134,7 @@ docker exec ollama_service ollama list
 
 ```
 
-Any other Ollama model works too; pick it in the interface, or pull it from there.
+Any other Ollama model works too; pull it here, then you can pick it in the interface.
 
 ## Step 9 - Open the interface
 
