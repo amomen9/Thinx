@@ -1,6 +1,6 @@
 # Deploying Thinx on macOS with Docker
 
-The macOS counterpart of **thinx_deployment.md**. I wrote it on 2026-09-24 from the Linux guide,
+The macOS counterpart of **thinx_deployment.md**. It is prepared on 2026-09-24 from that Linux guide,
 changing only what actually differs; the stack, the **.env** variables, the ports and the first
 login are identical on both systems. Every box can be pasted as it stands.
 
