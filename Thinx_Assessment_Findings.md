@@ -3,7 +3,7 @@
 **Scope:** VODAN-Development/Thinx, commit **0b4cd0d** (2026-07-15, the current tip of **main**), plus a working deployment of that commit on a local Linux VM (Docker Compose, profile **full**, mock dataset **Mock data/DT01.xlsx** imported).
 
 **Date of assessment:** 2026-09-19
-**Assessor:** Ali Momen (DSIP FieldLab, Team Thinx), assisted by Claude Opus 5 - see **Thinx_AI_Usage_Log.md**
+**Assessor:** Ali Momen (DSIP FieldLab, Team Thinx)
 **Method:** passive source-code review, configuration review, dependency vulnerability lookup against the OSV.dev database, and first-hand experience of deploying the stack. No intrusive or active security testing was performed against any server.
 
 **Severity scale**
