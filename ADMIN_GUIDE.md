@@ -114,7 +114,7 @@ Thinx consists of three main components:
 
 2. Run the full system:
    ```bash
-   docker-compose --profile full up -d
+   docker-compose --profile full up -dcd
    ```
 
 3. Access the platform:
