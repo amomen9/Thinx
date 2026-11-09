@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HDS CDM terms</title>
+<style>
+:root { --bg:#fbfaf7; --fg:#1d1d1b; --muted:#6b6b66; --line:#dddad2; --head:#efece4; --gap:#fdf0e6; --yes:#2f7a46; --no:#a0522d; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#1a1a18; --fg:#e8e6e1; --muted:#9a9890; --line:#3a3935; --head:#26251f; --gap:#3a2a1f; --yes:#7fc896; --no:#e0a07a; }
+}
+body { background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, sans-serif; margin:0; padding:20px 16px; }
+h1 { font-size:20px; margin:0 0 4px; }
+p.sub { color:var(--muted); margin:0 0 14px; }
+.bar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+input, select { font:inherit; padding:6px 8px; border:1px solid var(--line); background:var(--bg); color:var(--fg); border-radius:4px; }
+input { flex:1; min-width:200px; }
+.wrap { overflow-x:auto; }
+table { border-collapse:collapse; width:100%; }
+th, td { border-bottom:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top; }
+th { background:var(--head); position:sticky; top:0; cursor:pointer; white-space:nowrap; user-select:none; }
+th.asc::after { content:" \25B2"; font-size:10px; }
+th.desc::after { content:" \25BC"; font-size:10px; }
+td:first-child { font-family:ui-monospace, Consolas, monospace; white-space:nowrap; }
+td.gap { background:var(--gap); }
+td.u-yes { color:var(--yes); font-weight:600; }
+td.u-no { color:var(--no); }
+.none { color:var(--muted); }
+.legend { color:var(--muted); font-size:13px; margin-top:12px; }
+</style></head><body>
+<h1>HDS CDM - all terms</h1>
+<p class="sub">Generated from hds_cdm.ttl: 15 classes, 31 properties.
+39 of 46 terms are mapped to a standard vocabulary, 15 are written by push_to_allegrograph.py.</p>
+<div class="bar">
+  <input id="q" placeholder="Search any column...">
+  <select id="k"><option value="">All kinds</option><option>Class</option><option>Link property</option><option>Value property</option></select>
+</div>
+<div class="wrap"><table><thead><tr><th data-i="0">Term</th><th data-i="1">Kind</th><th data-i="2">Section in file</th><th data-i="3">Label</th><th data-i="4">Definition</th><th data-i="5">Who can have it</th><th data-i="6">Value type</th><th data-i="7">Standard equivalent</th><th data-i="8">Written by push script</th></tr></thead><tbody id="tb">
+<tr data-kind="Class"><td>hds:Article</td><td>Class</td><td>Classes</td><td>Article</td><td>A publication or news article</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>schema:Article</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:Camp</td><td>Class</td><td>Classes</td><td>Camp</td><td>A humanitarian camp or settlement</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>nci:RefugeeCamp</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:Destination</td><td>Class</td><td>Classes</td><td>Destination</td><td>The destination point of a movement</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>nci:Destination, schema:Place</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:Event</td><td>Class</td><td>Classes</td><td>Event</td><td>Something that happens at a given place and time</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>nci:Event, schema:Event</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Class"><td>hds:Incident</td><td>Class</td><td>Classes</td><td>Incident</td><td>A security or humanitarian incident</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>schema:Event</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Class"><td>hds:Location</td><td>Class</td><td>Classes</td><td>Location</td><td>A geospatial location</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>schema:Place</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Class"><td>hds:Organisation</td><td>Class</td><td>Classes</td><td>Organisation</td><td>A structured group of individuals working together</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>schema:Organization</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:Perpetrator</td><td>Class</td><td>Classes</td><td>Perpetrator</td><td>A person responsible for an action causing harm</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>add:Perpetrator, schema:Person</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:Publication</td><td>Class</td><td>Classes</td><td>Publication</td><td>Any published work</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>nci:Publication, schema:CreativeWork</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:Record</td><td>Class</td><td>Classes</td><td>Record</td><td>A dataset record (data provenance)</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>prov:Entity, schema:CreativeWork, schema:Record</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:Situation</td><td>Class</td><td>Classes</td><td>Situation</td><td>A state or condition; more precise than prov:Entity</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>schema:State</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:SituationReport</td><td>Class</td><td>Classes</td><td>Situation Report</td><td>A humanitarian situation report</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>schema:Report</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:Source</td><td>Class</td><td>Classes</td><td>Source</td><td>A source of information (provenance)</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>prov:Entity, schema:Article</td><td class="u-no">no</td></tr>
+<tr data-kind="Class"><td>hds:Trafficker</td><td>Class</td><td>Classes</td><td>Trafficker</td><td>A person engaged in illegal trade of people or goods</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>foaf:Person, schema:Role</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Class"><td>hds:Victim</td><td>Class</td><td>Classes</td><td>Victim</td><td>Person harmed in an incident.</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>foaf:Person, gsso:Victim, schema:Role</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Link property"><td>hds:affected</td><td>Link property</td><td>Event / incident properties</td><td>Affected</td><td><span class="none">-</span></td><td>hds:Event or hds:Incident</td><td>hds:Victim or hds:Organisation</td><td>schema:affectedBy</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Link property"><td>hds:affiliation</td><td>Link property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim or hds:Perpetrator</td><td>hds:Organisation</td><td>schema:affiliation</td><td class="u-no">no</td></tr>
+<tr data-kind="Link property"><td>hds:involved</td><td>Link property</td><td>Event / incident properties</td><td>Involved</td><td><span class="none">-</span></td><td>hds:Event or hds:Incident</td><td>hds:Victim or hds:Trafficker or hds:Perpetrator or hds:Organisation</td><td>schema:participant</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Link property"><td>hds:isPerpetratorOf</td><td>Link property</td><td>Event / incident properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Perpetrator</td><td>hds:Event or hds:Incident</td><td class="gap"><span class="none">-</span></td><td class="u-no">no</td></tr>
+<tr data-kind="Link property"><td>hds:isVictimOf</td><td>Link property</td><td>Event / incident properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim</td><td>hds:Event or hds:Incident</td><td>schema:participant</td><td class="u-no">no</td></tr>
+<tr data-kind="Link property"><td>hds:location</td><td>Link property</td><td>Event / incident properties</td><td>Location</td><td><span class="none">-</span></td><td>hds:Destination or hds:Incident or hds:Camp or hds:Event or hds:Organisation</td><td>hds:Location</td><td>schema:location</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Link property"><td>hds:responseBy</td><td>Link property</td><td>Event / incident properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Event or hds:Incident</td><td>hds:Organisation</td><td class="gap"><span class="none">-</span></td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:accommodation</td><td>Value property</td><td>Situation properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Situation</td><td>one of: &quot;Tent&quot;, &quot;Appartment&quot;, &quot;House&quot;</td><td>schema:accommodationCategory, schema:amenityFeature</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:age</td><td>Value property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim or hds:Perpetrator or hds:Trafficker</td><td>xsd:integer</td><td>schema:age</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Value property"><td>hds:ageGroup</td><td>Value property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim or hds:Perpetrator or hds:Trafficker</td><td>one of: &quot;0-15&quot;, &quot;15-25&quot;, &quot;25-40&quot;, &quot;40-60&quot;, &quot;60+&quot;</td><td class="gap"><span class="none">-</span></td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:captivityStatus</td><td>Value property</td><td>Situation properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim</td><td>one of: &quot;in captivity&quot;, &quot;not in captivity&quot;</td><td class="gap"><span class="none">-</span></td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:category</td><td>Value property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim or hds:Perpetrator or hds:Trafficker</td><td>one of: &quot;Individual&quot;, &quot;Group&quot;</td><td class="gap"><span class="none">-</span></td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:date</td><td>Value property</td><td>General datatype properties</td><td>Date</td><td><span class="none">-</span></td><td>hds:Incident or hds:Record or hds:Event</td><td>xsd:date</td><td>schema:date</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:description</td><td>Value property</td><td>General datatype properties</td><td>Description</td><td><span class="none">-</span></td><td>hds:Victim or hds:Location or hds:Incident or hds:Event or hds:Perpetrator or hds:Destination or hds:Trafficker or hds:Organisation</td><td>xsd:string</td><td>dct:description, schema:description</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Value property"><td>hds:displacementStatus</td><td>Value property</td><td>Situation properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim</td><td>one of: &quot;Refugee&quot;, &quot;IDP&quot;</td><td class="gap"><span class="none">-</span></td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:ethnicity</td><td>Value property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim or hds:Perpetrator or hds:Trafficker</td><td>xsd:string</td><td>schema:ethnicity</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:gender</td><td>Value property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim or hds:Perpetrator or hds:Trafficker</td><td>one of: &quot;Male&quot;, &quot;Female&quot;, &quot;Other&quot;</td><td>schema:gender</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Value property"><td>hds:id</td><td>Value property</td><td>General datatype properties</td><td>ID</td><td>Unique identifier</td><td>hds:Incident or hds:Record or hds:Victim or hds:Trafficker or hds:Perpetrator or hds:Destination or hds:Location or hds:Source or hds:Organisation</td><td>xsd:string</td><td>dct:identifier, schema:identifier</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Value property"><td>hds:inputBy</td><td>Value property</td><td>Record properties</td><td>Input by</td><td><span class="none">-</span></td><td>hds:Record</td><td>xsd:string</td><td>prov:wasAttributedTo</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:link</td><td>Value property</td><td>Record properties</td><td>Link</td><td><span class="none">-</span></td><td>hds:Publication or hds:SituationReport or hds:Article</td><td>xsd:string</td><td>schema:url</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:maritalStatus</td><td>Value property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim</td><td>one of: &quot;Married&quot;, &quot;Single&quot;, &quot;Divorced&quot;, &quot;Widowed&quot;</td><td>schema:maritalStatus</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:name</td><td>Value property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim or hds:Trafficker or hds:Perpetrator or hds:Organisation</td><td>xsd:string</td><td>schema:name</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Value property"><td>hds:nationality</td><td>Value property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim or hds:Trafficker or hds:Perpetrator</td><td>one of: &quot;Sudan&quot;, &quot;Eritrea&quot;, &quot;Ethiopia&quot;, &quot;Uganda&quot;, &quot;Kenya&quot;, &quot;Libya&quot;, &quot;Tunisia&quot;, &quot;Chad&quot;</td><td>schema:nationality</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Value property"><td>hds:needs</td><td>Value property</td><td>Situation properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Camp</td><td>one of: &quot;Health&quot;, &quot;Education&quot;, &quot;Shelter&quot;, &quot;Protection&quot;, &quot;WASH&quot;, &quot;Food security&quot;, &quot;Transportation&quot;, &quot;Communication&quot;, &quot;Mental Health&quot;, &quot;Spiritual support&quot;, &quot;Administrative support&quot;</td><td>schema:requires</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:number</td><td>Value property</td><td>Situation properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim or hds:Perpetrator</td><td>xsd:integer</td><td>schema:quantity</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:parentalStatus</td><td>Value property</td><td>Entity properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Victim</td><td>one of: &quot;Is a parent&quot;, &quot;Is not a parent&quot;</td><td>schema:parentalStatus</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:situation</td><td>Value property</td><td>Situation properties</td><td><span class="none">-</span></td><td><span class="none">-</span></td><td>hds:Situation</td><td>one of: &quot;In captivity&quot;, &quot;En route&quot;</td><td class="gap"><span class="none">-</span></td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:source</td><td>Value property</td><td>Record properties</td><td>Source</td><td><span class="none">-</span></td><td>hds:Record</td><td>xsd:string</td><td>dct:source</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:timeRange</td><td>Value property</td><td>General datatype properties</td><td>Time range</td><td><span class="none">-</span></td><td>hds:Incident or hds:Record or hds:Event</td><td>xsd:string</td><td>add:timeRange</td><td class="u-no">no</td></tr>
+<tr data-kind="Value property"><td>hds:type</td><td>Value property</td><td>General datatype properties</td><td>Type</td><td>The RDF type/class of an entity</td><td>hds:Incident or hds:Event</td><td>xsd:string</td><td>rdf:type</td><td class="u-yes">yes</td></tr>
+<tr data-kind="Value property"><td>hds:updatedAt</td><td>Value property</td><td>Record properties</td><td>Updated at</td><td><span class="none">-</span></td><td>hds:Record</td><td>xsd:dateTime</td><td>dct:modified</td><td class="u-no">no</td></tr>
+</tbody></table></div>
+<p class="legend">Shaded cell in "Standard equivalent" = no mapping to an outside vocabulary.
+Link property = value is another thing (ObjectProperty). Value property = value is plain data (DatatypeProperty).
+Click a column header to sort.</p>
+<script>
+const tb = document.getElementById('tb'), q = document.getElementById('q'), k = document.getElementById('k');
+function filter() {
+  const s = q.value.toLowerCase(), kind = k.value;
+  for (const tr of tb.rows) {
+    const ok = (!kind || tr.dataset.kind === kind) && tr.textContent.toLowerCase().includes(s);
+    tr.style.display = ok ? '' : 'none';
+  }
+}
+q.addEventListener('input', filter); k.addEventListener('change', filter);
+document.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+  const i = +th.dataset.i, asc = !th.classList.contains('asc');
+  document.querySelectorAll('th').forEach(h => h.classList.remove('asc', 'desc'));
+  th.classList.add(asc ? 'asc' : 'desc');
+  const rows = [...tb.rows].sort((a, b) => a.cells[i].textContent.localeCompare(b.cells[i].textContent));
+  if (!asc) rows.reverse();
+  rows.forEach(r => tb.appendChild(r));
+}));
+</script>
+</body></html>
