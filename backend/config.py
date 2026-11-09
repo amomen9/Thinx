@@ -40,6 +40,8 @@ FLASK_DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
 
 # Secret key for sessions (MUST be set in production)
 SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
+if not SECRET_KEY:
+    raise RuntimeError('SECRET_KEY environment variable must be configured')
 if FLASK_ENV == 'production' and SECRET_KEY == 'dev-key-change-in-production':
     import warnings
     warnings.warn("SECRET_KEY not set! Using default key is insecure in production!")
