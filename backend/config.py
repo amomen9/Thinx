@@ -206,3 +206,6 @@ def get_config_summary():
         'upload_max_size': MAX_UPLOAD_SIZE,
         'log_level': LOG_LEVEL
     }
+
+# Authentication configuration: set a long random SECRET_KEY in the environment.
+AUTH_TOKEN_MAX_AGE = int(os.getenv('AUTH_TOKEN_MAX_AGE', '1800'))
