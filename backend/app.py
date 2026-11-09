@@ -17,12 +17,19 @@ import json
 from pathlib import Path
 from datetime import datetime
 from werkzeug.exceptions import HTTPException
+from flask import g
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+import config
+import hashlib
+import hmac
 from models import Connection, ConnectionManager, UserManager
 from utils.allegrograph import AllegroGraphClient
 from utils.ai_mapper import SmartMapper
 from utils.fair_data_point import FairDataPointClient
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = config.SECRET_KEY
+_token_signer = URLSafeTimedSerializer(config.SECRET_KEY, salt='thinx-auth-v1')
 
 # Enable CORS for Vue.js frontend
 CORS(app, resources={
