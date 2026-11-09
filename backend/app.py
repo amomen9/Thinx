@@ -604,7 +604,7 @@ def create_connection():
         
         # Validate required fields
         connection_type = data.get('type', 'allegrograph')
-        user_id = data.get('user_id')  # Required for user ownership
+        user_id = g.current_user.get['id']  # Required for user ownership
         
         if not user_id:
             return jsonify({
@@ -2123,4 +2123,9 @@ def get_fair_catalog_details(catalog_id: str):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(
+    host=config.FLASK_HOST,
+    port=config.FLASK_PORT,
+    debug=config.FLASK_DEBUG
+)
