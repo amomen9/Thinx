@@ -9,7 +9,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 import hashlib
-
+import hmac
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
 
 class User:
     """Represents a user account"""
@@ -55,11 +59,16 @@ class User:
     @staticmethod
     def hash_password(password: str) -> str:
         """Hash a password using SHA256"""
-        return hashlib.sha256(password.encode()).hexdigest()
+        return generate_password_hash(password, method='pbkdf2:sha256:600000')
     
     def verify_password(self, password: str) -> bool:
         """Verify password matches hash"""
-        return self.password_hash == User.hash_password(password)
+        if self.password_hash.startswith(('pbkdf2:', 'scrypt:')):
+            return check_password_hash(self.password_hash, password)
+        # Legacy SHA256 hashes are upgraded on the next successful login.
+        return hmac.compare_digest(
+            self.password_hash, hashlib.sha256(password.encode()).hexdigest()
+        )
 
 
 class Connection:
@@ -155,11 +164,24 @@ class UserManager:
         self._ensure_storage()
     
     def _ensure_storage(self):
-        """Create storage file if it doesn't exist"""
         if not self.storage_path.exists():
-            # Create default admin user
-            admin = User('admin', User.hash_password('admin'), is_admin=True)
-            self.storage_path.write_text(json.dumps([admin.to_dict()], indent=2))
+            import os
+
+            username = os.getenv('INITIAL_ADMIN_USERNAME')
+            password = os.getenv('INITIAL_ADMIN_PASSWORD')
+
+            if username and password and len(password) >= 12:
+                admin = User(
+                    username,
+                    User.hash_password(password),
+                    is_admin=True
+                )
+
+                self.storage_path.write_text(
+                    json.dumps([admin.to_dict()], indent=2)
+                )
+            else:
+                self.storage_path.write_text('[]')
     
     def _load_users(self) -> List[Dict]:
         """Load users from storage"""
@@ -179,12 +201,14 @@ class UserManager:
         for user_data in users:
             user = User.from_dict(user_data)
             if user.username == username and user.verify_password(password):
+                # Upgrade historic unsalted SHA256 passwords on login.
+                if not user.password_hash.startswith(('pbkdf2:', 'scrypt:')):
+                    user_data['password_hash'] = User.hash_password(password)
                 # Update last login
                 user_data['last_login'] = datetime.utcnow().isoformat()
                 self._save_users(users)
                 # Return user data without password hash
-                user_dict = user.to_dict()
-                return user_dict
+                return dict(user_data)
         return None
     
     def get_user(self, user_id: str) -> Optional[Dict]:
@@ -222,6 +246,10 @@ class UserManager:
         users = self._load_users()
         for i, user in enumerate(users):
             if user['id'] == user_id:
+                # Prevent removal of the final administrator.
+                if user.get('is_admin') and updates.get('is_admin') is False:
+                    if sum(bool(u.get('is_admin')) for u in users) <= 1:
+                        raise ValueError('Cannot demote the last admin')
                 # Update allowed fields
                 if 'email' in updates:
                     user['email'] = updates['email']
@@ -314,8 +342,12 @@ class ConnectionManager:
         
         for i, conn in enumerate(connections):
             if conn['id'] == connection_id:
-                # Update fields
-                conn.update(data)
+                # Immutable ownership and identity; allow only explicitly editable fields.
+                allowed = {'name', 'description', 'host', 'port', 'repository',
+                           'username', 'password', 'fair_url', 'catalog_id',
+                           'catalog_title', 'catalog_publisher', 'catalog_contact',
+                           'catalog_license', 'catalog_themes', 'dataset_count'}
+                conn.update({k: v for k, v in data.items() if k in allowed})
                 conn['updated_at'] = datetime.utcnow().isoformat()
                 connections[i] = conn
                 self._save_connections(connections)
