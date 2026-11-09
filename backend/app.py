@@ -50,6 +50,83 @@ USERS_FILE = DATA_DIR / 'users.json'
 connection_manager = ConnectionManager(CONNECTIONS_FILE)
 user_manager = UserManager(USERS_FILE)
 
+# Explicit anonymous endpoints; all other /api/* routes require authentication.
+PUBLIC_API_ENDPOINTS = {'health_check', 'register', 'login'}
+# Shared on-disk workspace operations currently have no per-researcher isolation.
+# Deny them to researchers until workspace storage is partitioned by user.
+ADMIN_ONLY_ENDPOINTS = {
+    'get_all_users', 'update_user', 'delete_user', 'debug_types',
+    'upload_file', 'validate_data', 'run_notebook', 'push_to_allegrograph',
+    'get_file_columns', 'pull_model', 'apply_mapping', 'get_data_preview',
+    'transform_column', 'suggest_mapping',
+}
+
+def token_version(user):
+    # Keyed fingerprint: don't expose password hashes in plaintext token payloads.
+    return hmac.new(
+        config.SECRET_KEY.encode(),
+        user['password_hash'].encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+def public_connection(connection):
+    if connection is None:
+        return None
+    return {k: v for k, v in connection.items() if k not in {'password'}}
+
+def owned_connection(connection_id):
+    connection = connection_manager.get_connection(connection_id)
+    if not connection or (not g.current_user.get('is_admin') and
+                          connection.get('user_id') != g.current_user['id']):
+        return None
+    return connection
+
+def chosen_connection(connection_id):
+    if connection_id:
+        return owned_connection(connection_id)
+    # Global active connection is unsafe for multitenant researcher access.
+    # Researchers use an active connection owned by their own account only.
+    if not g.current_user.get('is_admin'):
+        return next((c for c in connection_manager.get_all_connections(
+            user_id=g.current_user['id']) if c.get('is_active')), None)
+    return connection_manager.get_active_connection()
+
+@app.before_request
+def enforce_authentication():
+    if request.method == 'OPTIONS':
+        return None
+    
+    if not request.path.startswith('/api/') or request.endpoint in PUBLIC_API_ENDPOINTS:
+        return None
+    header = request.headers.get('Authorization', '')
+    
+    if not header.startswith('Bearer '):
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+    try:
+        payload = _token_signer.loads(header[7:], max_age=config.AUTH_TOKEN_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return jsonify({'success': False, 'error': 'Invalid or expired token'}), 401
+    user = user_manager.get_user(payload.get('sub', '')) if isinstance(payload, dict) else None
+    
+    if not user or not hmac.compare_digest(str(payload.get('v', '')), token_version(user)):
+        return jsonify({'success': False, 'error': 'Invalid session'}), 401
+    g.current_user = user
+    if request.endpoint in ADMIN_ONLY_ENDPOINTS and not user.get('is_admin'):
+        return jsonify({'success': False, 'error': 'Admin privileges required'}), 403
+    
+    # Connection objects must only be addressed by their owner.
+    connection_id = (request.view_args or {}).get('connection_id')
+    if connection_id and not owned_connection(connection_id):
+        return jsonify({'success': False, 'error': 'Connection not found'}), 404
+    
+    # Connection-based data operations require an authorized connection.
+    if request.endpoint in {'execute_query', 'get_data', 'get_statistics'}:
+        data = request.get_json(silent=True) if request.method == 'POST' else None
+        selected = (data or {}).get('connection_id') or request.args.get('connection_id')
+        if selected and not owned_connection(selected):
+            return jsonify({'success': False, 'error': 'Connection not found'}), 404
+        
+    return None
 
 # ============================================================================
 # VALIDATION HELPERS
