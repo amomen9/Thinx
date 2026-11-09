@@ -358,7 +358,7 @@ def login():
         Session management handled client-side for stateless API.
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         username = data.get('username', '').strip()
         password = data.get('password', '')
         
@@ -376,6 +376,9 @@ def login():
             return jsonify({
                 'success': True,
                 'user': user_data,
+                'access_token': _token_signer.dumps({'sub': user['id'], 'v': token_version(user)}),
+                'token_type': 'Bearer',
+                'expires_in': config.AUTH_TOKEN_MAX_AGE,
                 'message': 'Login successful'
             }), 200
         else:
