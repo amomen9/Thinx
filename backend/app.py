@@ -1317,16 +1317,14 @@ def push_to_allegrograph():
             # Check for actual success indicators first
             has_success = 'SUCCESS' in output or 'successfully' in output.lower() or 'Triples added:' in output
             
-            # Ignore ontology parsing warnings - they don't affect data upload
-            if 'Error loading ontology' in output and has_success:
-                # Filter out the ontology error from output shown to user
-                output_lines = output.split('\n')
-                filtered_output = '\n'.join([
-                    line for line in output_lines 
-                    if not any(err in line for err in ['Error loading ontology', 'Bad syntax', 'Prefix', 'not bound'])
-                ])
-                output = filtered_output
-            
+            # D-T1: Do not hide ontology errors.
+            if 'Error loading ontology' in output or 'Ontology loading failed' in output:
+                return jsonify({
+                    'success': False,
+                    'error': 'Ontology loading failed. RDF upload blocked.',
+                    'output': output
+                }), 500
+
             # Check for critical errors (not ontology warnings)
             critical_errors = ['MALFORMED DATA', 'Upload failed', 'Failed to create repository']
             if any(err in output for err in critical_errors):

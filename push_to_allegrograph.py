@@ -12,7 +12,7 @@ try:
     g.parse(ontology_file, format="turtle")
     print(f"Loaded ontology from {ontology_file}")
 except Exception as e:
-    print(f"Error loading ontology: {e}")
+    raise RuntimeError(f"Ontology loading failed: {e}") from e
 
 # Namespaces
 HDS = Namespace("http://example.org/hds#")
