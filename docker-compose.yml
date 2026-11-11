@@ -37,10 +37,11 @@ services:
     image: franzinc/agraph:v8.0.1  # Official AllegroGraph image
     container_name: agraph_db        # Name to reference this container
     platform: linux/amd64            # Required for M1/M2 Macs
-    ports:
-      - "127.0.0.1:10035:10035"      # Web interface port, bound to localhost only (D-S1)
-                                     # Format: "your_computer:container"
-                                     # Change first number if port is in use
+    # No published port (D-S6): only reachable on the internal Docker network.
+    # To open the AllegroGraph web interface temporarily on this computer only,
+    # uncomment the next two lines:
+    # ports:
+    #   - "127.0.0.1:10035:10035"
     environment:
       # Database admin credentials - CHANGE THESE FOR PRODUCTION!
       - AGRAPH_SUPER_USER=${AGRAPH_SUPER_USER:-admin}
@@ -92,8 +93,7 @@ services:
   ollama:
     image: ollama/ollama:latest      # Official Ollama image
     container_name: ollama_service   # Name to reference this container
-    ports:
-      - "127.0.0.1:11434:11434"      # AI API, bound to localhost only (D-S1)
+    # No published port (D-S6): only the backend talks to Ollama, over the internal network.
     volumes:
       # Store downloaded AI models (persist across restarts)
       - ollama_data:/root/.ollama
@@ -127,9 +127,9 @@ services:
       context: ./backend             # Build from ./backend folder
       dockerfile: Dockerfile         # Using Dockerfile in that folder
     container_name: flask_api        # Name to reference this container
-    ports:
-      - "127.0.0.1:5000:5000"        # API port, bound to localhost only (D-S1)
-                                     # Change first 5000 if port is in use
+    # No published port (D-S6): the browser reaches the API through Caddy at https://localhost/api
+    expose:
+      - "5000"
     environment:
       # Flask configuration
       - FLASK_APP=app.py             # Main application file
@@ -203,13 +203,14 @@ services:
       dockerfile: Dockerfile         # Using Dockerfile in that folder
       target: development            # Development build with hot-reload
     container_name: vue_ui           # Name to reference this container
-    ports:
-      - "8080:80"                      # Web interface port (standard HTTP)
-                                     # 💡 If port 80 is in use, change to "8080:80"
-                                     #    then access at http://localhost:8080
+    # No published port (D-S6): served through Caddy at https://localhost
+    expose:
+      - "80"
     environment:
-      # Tell frontend where to find the backend API
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:5000}
+      # Empty = same origin: the browser calls https://localhost/api, which Caddy forwards to the backend
+      - VITE_API_URL=${VITE_API_URL:-}
+      # Hot reload goes through Caddy on port 443
+      - VITE_HMR_CLIENT_PORT=443
       # Development mode
       - NODE_ENV=development
     volumes:
@@ -240,6 +241,38 @@ services:
       - frontend  # Frontend only
       - no-ai     # Without AI
       - minimal   # Minimal setup
+
+  # ===================================================================
+  # Caddy - HTTPS entry point (D-S6)
+  # ===================================================================
+  # The only service reachable from outside Docker. Serves Thinx at
+  # https://localhost, forwards /api/* to the backend and redirects HTTP to HTTPS.
+  # Configuration: ./Caddyfile. See docs/SECURITY_TLS.md.
+  # ===================================================================
+  caddy:
+    image: caddy:2.8.4-alpine
+    container_name: thinx_caddy
+    ports:
+      # Bound to this computer by default; on a server set THINX_BIND=0.0.0.0 in .env
+      - "${THINX_BIND:-127.0.0.1}:80:80"
+      - "${THINX_BIND:-127.0.0.1}:443:443"
+    environment:
+      - THINX_DOMAIN=${THINX_DOMAIN:-localhost}
+      - THINX_TLS=${THINX_TLS:-internal}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data             # certificates and Caddy's local CA
+      - caddy_config:/config
+    networks:
+      - app_network
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    profiles:
+      - full
+      - no-ai
+      - minimal
 
 # ===================================================================
 # Networks - How Containers Talk to Each Other
@@ -298,6 +331,14 @@ volumes:
   ollama_data:
     driver: local
     name: ollama_data_volume
+
+  # Caddy certificates and local CA (D-S6)
+  caddy_data:
+    driver: local
+    name: caddy_data_volume
+  caddy_config:
+    driver: local
+    name: caddy_config_volume
 
 # ===================================================================
 # USAGE GUIDE - How to Start Thinx

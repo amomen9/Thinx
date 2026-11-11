@@ -2014,8 +2014,8 @@ def get_fair_data_point_info():
         information for requesting access to datasets.
     """
     try:
-        # Use verify_ssl=False to handle expired/self-signed certificates
-        fdp_client = FairDataPointClient(verify_ssl=False)
+        # Certificates are verified (D-S6); FDP_VERIFY_SSL=false only for a known self-signed test server
+        fdp_client = FairDataPointClient(verify_ssl=config.FDP_VERIFY_SSL)
         fdp_info = fdp_client.get_fdp_metadata()
         
         if not fdp_info:
@@ -2068,8 +2068,8 @@ def get_fair_catalogs():
         requesting access credentials from the data owner.
     """
     try:
-        # Use verify_ssl=False to handle expired/self-signed certificates
-        fdp_client = FairDataPointClient(verify_ssl=False)
+        # Certificates are verified (D-S6); FDP_VERIFY_SSL=false only for a known self-signed test server
+        fdp_client = FairDataPointClient(verify_ssl=config.FDP_VERIFY_SSL)
         
         # Get FDP info for contact information
         fdp_info = fdp_client.get_fdp_metadata()
@@ -2118,8 +2118,8 @@ def get_fair_catalog_details(catalog_id: str):
         import urllib.parse
         catalog_url = urllib.parse.unquote(catalog_id)
         
-        # Use verify_ssl=False to handle expired/self-signed certificates
-        fdp_client = FairDataPointClient(verify_ssl=False)
+        # Certificates are verified (D-S6); FDP_VERIFY_SSL=false only for a known self-signed test server
+        fdp_client = FairDataPointClient(verify_ssl=config.FDP_VERIFY_SSL)
         catalog = fdp_client.get_catalog_details(catalog_url)
         
         if not catalog:

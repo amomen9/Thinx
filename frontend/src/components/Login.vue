@@ -57,6 +57,7 @@
 
 <script>
 import axios from 'axios';
+import { API_BASE_URL } from '../services/api';
 
 export default {
   name: 'Login',
@@ -74,7 +75,7 @@ export default {
       this.loading = true;
 
       try {
-        const response = await axios.post('http://localhost:5000/api/login', {
+        const response = await axios.post(`${API_BASE_URL}/api/login`, {
           username: this.username,
           password: this.password
         });

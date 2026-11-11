@@ -1,0 +1,35 @@
+# Thinx - HTTPS entry point (D-S6)
+#
+# Caddy is the only service reachable from outside Docker. It terminates TLS and
+# forwards /api/* to the backend and everything else to the frontend. Backend,
+# AllegroGraph and Ollama are only reachable on the internal Docker network.
+#
+# Local use (default): https://localhost with a certificate from Caddy's own
+# local CA ("tls internal"). Your browser warns once until you trust that CA,
+# see docs/SECURITY_TLS.md.
+#
+# Server with a real domain: set in .env
+#   THINX_DOMAIN=thinx.example.org
+#   THINX_TLS=you@example.org     (Caddy then gets a Let's Encrypt certificate)
+
+{$THINX_DOMAIN:localhost} {
+	tls {$THINX_TLS:internal}
+
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy {$BACKEND_UPSTREAM:backend:5000}
+	}
+
+	handle {
+		reverse_proxy {$FRONTEND_UPSTREAM:frontend:80}
+	}
+}

@@ -12,9 +12,13 @@ export default defineConfig({
       usePolling: true,
       interval: 1000
     },
+    // Without Docker (npm run dev), /api is forwarded to a locally running backend
+    proxy: {
+      '/api': process.env.VITE_DEV_API_PROXY || 'http://localhost:5000'
+    },
     hmr: {
-      // Use websocket port for HMR
-      clientPort: 80,
+      // Behind Caddy the browser connects on 443 (D-S6); 80 when run without it
+      clientPort: Number(process.env.VITE_HMR_CLIENT_PORT || 80),
       // Timeout for HMR connection
       timeout: 30000
     }

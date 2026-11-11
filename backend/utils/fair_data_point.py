@@ -13,7 +13,7 @@ from urllib3.exceptions import InsecureRequestWarning
 class FairDataPointClient:
     """Client for interacting with FAIR Data Point API"""
     
-    def __init__(self, fdp_url: str = "https://fairdp.colo.ba.be", verify_ssl: bool = False):
+    def __init__(self, fdp_url: str = "https://fairdp.colo.ba.be", verify_ssl: bool = True):
         """
         Initialize FAIR Data Point client
         
@@ -322,7 +322,7 @@ class FairDataPointClient:
 
 
 # Convenience functions
-def get_eepa_catalogs(verify_ssl: bool = False) -> List[Dict]:
+def get_eepa_catalogs(verify_ssl: bool = True) -> List[Dict]:
     """Get all available catalogs from EEPA FAIR Data Point
     
     Args:
@@ -332,7 +332,7 @@ def get_eepa_catalogs(verify_ssl: bool = False) -> List[Dict]:
     return client.get_catalogs()
 
 
-def get_eepa_fdp_info(verify_ssl: bool = False) -> Optional[Dict]:
+def get_eepa_fdp_info(verify_ssl: bool = True) -> Optional[Dict]:
     """Get EEPA FAIR Data Point metadata
     
     Args:

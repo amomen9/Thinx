@@ -227,3 +227,7 @@ AUTH_TOKEN_MAX_AGE = int(os.getenv('AUTH_TOKEN_MAX_AGE', '1800'))
 # Turtle output are deleted after a successful push to AllegroGraph. Set to true
 # only for debugging; these files contain victim data in plaintext.
 KEEP_INTERMEDIATE_FILES = os.getenv('KEEP_INTERMEDIATE_FILES', 'False').lower() == 'true'
+
+# TLS verification for calls to FAIR Data Points (D-S6, issue S3). Keep true;
+# set to false only for a test server with a self-signed certificate.
+FDP_VERIFY_SSL = os.getenv('FDP_VERIFY_SSL', 'True').lower() == 'true'
