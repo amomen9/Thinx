@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 import hashlib
 import hmac
+from secret_store import encrypt_secret, decrypt_secret
 from werkzeug.security import (
     generate_password_hash,
     check_password_hash
@@ -291,6 +292,16 @@ class ConnectionManager:
     def __init__(self, storage_path: Path):
         self.storage_path = storage_path
         self._ensure_storage()
+        self._encrypt_legacy_passwords()
+    
+    def _encrypt_legacy_passwords(self):
+        """Re-save once so that plaintext passwords from older versions get encrypted (D-S3)"""
+        try:
+            raw = json.loads(self.storage_path.read_text())
+        except Exception:
+            return
+        if any(conn.get('password') and not str(conn['password']).startswith('enc:v1:') for conn in raw):
+            self._save_connections(self._load_connections())
     
     def _ensure_storage(self):
         """Create storage file if it doesn't exist"""
@@ -298,16 +309,21 @@ class ConnectionManager:
             self.storage_path.write_text('[]')
     
     def _load_connections(self) -> List[Dict]:
-        """Load connections from storage"""
+        """Load connections from storage; passwords are decrypted in memory only (D-S3)"""
         try:
-            return json.loads(self.storage_path.read_text())
+            connections = json.loads(self.storage_path.read_text())
         except Exception as e:
             print(f"Error loading connections: {e}")
             return []
+        for conn in connections:
+            conn['password'] = decrypt_secret(conn.get('password', ''))
+        return connections
     
     def _save_connections(self, connections: List[Dict]):
-        """Save connections to storage"""
-        self.storage_path.write_text(json.dumps(connections, indent=2))
+        """Save connections to storage; passwords are written encrypted (D-S3)"""
+        stored = [{**conn, 'password': encrypt_secret(conn.get('password', ''))}
+                  for conn in connections]
+        self.storage_path.write_text(json.dumps(stored, indent=2))
     
     def get_all_connections(self, user_id: str = None) -> List[Dict]:
         """Get all connections, optionally filtered by user_id"""
@@ -347,7 +363,10 @@ class ConnectionManager:
                            'username', 'password', 'fair_url', 'catalog_id',
                            'catalog_title', 'catalog_publisher', 'catalog_contact',
                            'catalog_license', 'catalog_themes', 'dataset_count'}
-                conn.update({k: v for k, v in data.items() if k in allowed})
+                # Passwords are never sent back to the client (D-S3), so an edit form
+                # submits an empty password; keep the stored one in that case.
+                conn.update({k: v for k, v in data.items()
+                             if k in allowed and not (k == 'password' and not v)})
                 conn['updated_at'] = datetime.utcnow().isoformat()
                 connections[i] = conn
                 self._save_connections(connections)

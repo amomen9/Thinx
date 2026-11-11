@@ -91,6 +91,24 @@ def chosen_connection(connection_id):
             user_id=g.current_user['id']) if c.get('is_active')), None)
     return connection_manager.get_active_connection()
 
+# Files written by the processing and RDF steps; they hold victim data in plaintext (S2).
+INTERMEDIATE_FILES = ('victims.json', 'cleaned_data.json', 'final.json', 'Human_trafficking_output.ttl')
+
+def remove_intermediate_files(base_dir):
+    """Delete the intermediate files after a successful push (D-S5). Returns the removed names."""
+    if config.KEEP_INTERMEDIATE_FILES:
+        return []
+    removed = []
+    for name in INTERMEDIATE_FILES:
+        path = Path(base_dir) / name
+        try:
+            if path.is_file():
+                path.unlink()
+                removed.append(name)
+        except OSError as e:
+            print(f"[Cleanup] Could not delete {path}: {e}")
+    return removed
+
 @app.before_request
 def enforce_authentication():
     if request.method == 'OPTIONS':
@@ -552,14 +570,14 @@ def get_connections():
         }
         
     Note:
-        Connection credentials stored locally in encrypted format.
+        Connection passwords are stored encrypted and never returned (D-S3).
     """
     try:
         user_id = request.args.get('user_id')
         connections = connection_manager.get_all_connections(user_id=user_id)
         return jsonify({
             'success': True,
-            'connections': connections,
+            'connections': [public_connection(c) for c in connections],
             'count': len(connections)
         }), 200
     except Exception as e:
@@ -672,7 +690,7 @@ def create_connection():
         return jsonify({
             'success': True,
             'message': 'Connection created successfully',
-            'connection': saved_connection
+            'connection': public_connection(saved_connection)
         }), 201
         
     except Exception as e:
@@ -696,7 +714,7 @@ def get_connection(connection_id):
         
         return jsonify({
             'success': True,
-            'connection': connection
+            'connection': public_connection(connection)
         }), 200
         
     except Exception as e:
@@ -722,7 +740,7 @@ def update_connection(connection_id):
         return jsonify({
             'success': True,
             'message': 'Connection updated successfully',
-            'connection': updated_connection
+            'connection': public_connection(updated_connection)
         }), 200
         
     except Exception as e:
@@ -794,7 +812,7 @@ def get_active_connection():
         
         return jsonify({
             'success': True,
-            'connection': active_connection
+            'connection': public_connection(active_connection)
         }), 200
         
     except Exception as e:
@@ -1423,10 +1441,14 @@ def push_to_allegrograph():
                     'output': output
                 }), 500
             
+            removed = remove_intermediate_files(base_dir)
+            if removed:
+                output += '\n[Cleanup] Removed intermediate files: ' + ', '.join(removed)
             return jsonify({
                 'success': True,
                 'message': f'Data successfully pushed to AllegroGraph ({connection["name"]})!',
-                'output': output
+                'output': output,
+                'removed_intermediate_files': removed
             })
         else:
             error_msg = result.stderr if result.stderr else result.stdout

@@ -3,13 +3,17 @@
 List all repositories in AllegroGraph
 """
 
+import os
+
 import requests
 from requests.auth import HTTPBasicAuth
 
 AGRAPH_HOST = "https://ag1s5fv23e82hv78.allegrograph.cloud"
 AGRAPH_PORT = 10035
-AGRAPH_USER = "Admin"
-AGRAPH_PASSWORD = "moVzCHbrYZ9XdRipk18Pg1"
+AGRAPH_USER = os.getenv("AGRAPH_USER") or os.getenv("AGRAPH_SUPER_USER", "admin")
+AGRAPH_PASSWORD = os.getenv("AGRAPH_PASSWORD") or os.getenv("AGRAPH_SUPER_PASSWORD")
+if not AGRAPH_PASSWORD:
+    raise SystemExit("Set AGRAPH_PASSWORD (or AGRAPH_SUPER_PASSWORD) in your environment")
 
 BASE_URL = f"http://{AGRAPH_HOST}:{AGRAPH_PORT}"
 

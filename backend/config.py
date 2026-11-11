@@ -38,13 +38,29 @@ FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')
 FLASK_PORT = int(os.getenv('FLASK_PORT', 5000))
 FLASK_DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
 
-# Secret key for sessions (MUST be set in production)
-SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
-if not SECRET_KEY:
-    raise RuntimeError('SECRET_KEY environment variable must be configured')
-if FLASK_ENV == 'production' and SECRET_KEY == 'dev-key-change-in-production':
-    import warnings
-    warnings.warn("SECRET_KEY not set! Using default key is insecure in production!")
+# ----------------------------------------------------------------------------
+# Secrets (D-S2): no hardcoded fallbacks. The backend refuses to start when a
+# required secret is missing or still has the placeholder value from .env.example.
+# ----------------------------------------------------------------------------
+_PLACEHOLDER_PREFIXES = ('change-this', 'dev-key-change')
+
+
+def _required_secret(name: str) -> str:
+    value = os.getenv(name, '').strip()
+    if not value or value.lower().startswith(_PLACEHOLDER_PREFIXES):
+        raise RuntimeError(
+            f'{name} is not set. Copy .env.example to .env and set {name} '
+            f'(see the generation command in .env.example).'
+        )
+    return value
+
+
+# Signs the login tokens; generate with: python -c "import secrets; print(secrets.token_hex(32))"
+SECRET_KEY = _required_secret('SECRET_KEY')
+
+# Fernet key that encrypts the stored connection passwords (D-S3);
+# generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+CONNECTION_ENCRYPTION_KEY = _required_secret('CONNECTION_ENCRYPTION_KEY')
 
 # Session settings
 SESSION_TIMEOUT = int(os.getenv('SESSION_TIMEOUT', 3600))  # 1 hour default
@@ -61,12 +77,9 @@ AGRAPH_HOST = os.getenv('AGRAPH_HOST', 'allegrograph')
 AGRAPH_PORT = int(os.getenv('AGRAPH_PORT', 10035))
 AGRAPH_REPOSITORY = os.getenv('AGRAPH_REPOSITORY', 'humantrafficking')
 AGRAPH_USER = os.getenv('AGRAPH_SUPER_USER', 'admin')
-AGRAPH_PASSWORD = os.getenv('AGRAPH_SUPER_PASSWORD', 'admin123')
-
-# Warn if using default credentials
-if FLASK_ENV == 'production' and AGRAPH_PASSWORD == 'admin123':
-    import warnings
-    warnings.warn("Default AllegroGraph password detected! Change in production!")
+# No default password (D-S2): connections store their own credentials, and the
+# AllegroGraph container itself gets its password from .env (docker-compose).
+AGRAPH_PASSWORD = os.getenv('AGRAPH_SUPER_PASSWORD', '')
 
 # ============================================================================
 # CORS CONFIGURATION
@@ -209,3 +222,8 @@ def get_config_summary():
 
 # Authentication configuration: set a long random SECRET_KEY in the environment.
 AUTH_TOKEN_MAX_AGE = int(os.getenv('AUTH_TOKEN_MAX_AGE', '1800'))
+
+# Intermediate files (D-S5): victims.json, cleaned_data.json, final.json and the
+# Turtle output are deleted after a successful push to AllegroGraph. Set to true
+# only for debugging; these files contain victim data in plaintext.
+KEEP_INTERMEDIATE_FILES = os.getenv('KEEP_INTERMEDIATE_FILES', 'False').lower() == 'true'

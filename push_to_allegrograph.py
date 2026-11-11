@@ -143,7 +143,10 @@ repo_name = os.getenv("AGRAPH_REPOSITORY", "human_trafficking_444_inttt")
 host = os.getenv("AGRAPH_HOST", "localhost")
 port = int(os.getenv("AGRAPH_PORT", "10035"))
 username = os.getenv("AGRAPH_USER", "admin")
-password = os.getenv("AGRAPH_PASSWORD", "TUHB-KGDFCpUiTbL")
+password = os.getenv("AGRAPH_PASSWORD") or os.getenv("AGRAPH_SUPER_PASSWORD")
+if not password:
+    raise SystemExit("AGRAPH_PASSWORD is not set (the backend passes it from the selected connection; "
+                     "for manual runs set it in your environment or .env)")
 
 # Convert localhost to allegrograph for Docker networking
 if host == "localhost" or host == "127.0.0.1":
