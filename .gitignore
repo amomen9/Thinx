@@ -55,3 +55,6 @@ Thumbs.db
 
 # Local user accounts (password hashes) - never commit
 backend/data/users.json
+
+# Real interview data (D-S9) - never commit
+real_data/
