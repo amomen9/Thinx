@@ -58,3 +58,10 @@ wheels/
 # OS
 .DS_Store
 Thumbs.db
+# D-T2 mapping decision records (generated locally)
+dt2_runs/
+
+# D-T2 local files - do not commit
+backend/data/users.json
+dt2_dataset_A.json
+frontend/node_modules/

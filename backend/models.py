@@ -567,7 +567,11 @@ CDM_SCHEMA = {
 
 
 def get_cdm_schema():
-    """Return the Common Data Model schema"""
+    """Return the active Common Data Model schema."""
+    import os
+    if os.getenv("DT2_USE_DRAFT_SCHEMA") == "1":
+        from dt2_schema_draft import DRAFT_CDM_SCHEMA
+        return DRAFT_CDM_SCHEMA
     return CDM_SCHEMA
 
 

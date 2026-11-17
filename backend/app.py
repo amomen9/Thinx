@@ -23,6 +23,7 @@ from models import Connection, ConnectionManager, UserManager, public_connection
 from utils.allegrograph import AllegroGraphClient
 from utils.ai_mapper import SmartMapper
 from utils.fair_data_point import FairDataPointClient
+from dt2_mapping_record import save_mapping_decision, apply_with_decision_record
 
 app = Flask(__name__)
 
@@ -1582,11 +1583,72 @@ def apply_mapping():
     """Apply column mapping to the uploaded file"""
     import pandas as pd
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         mapping = data.get('mapping')
         
-        if not mapping:
-            return jsonify({'success': False, 'error': 'Mapping required'}), 400
+        # D-T2: Require explicit researcher approval
+        if data.get('researcher_approved') is not True:
+            return jsonify({
+                'success': False,
+                'error': 'Researcher approval required before applying mappings.'
+            }), 403
+        if not isinstance(mapping, dict) or not mapping:
+            return jsonify({
+                'success': False,
+                'error': 'A valid mapping object is required.'
+            }), 400
+
+        # D-T2: Validate date type and require separate stand-in approval
+        date_kind = data.get('date_kind', 'unknown')
+
+        if date_kind not in ('event', 'interview', 'unknown'):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid date_kind value.'
+            }), 400
+
+        if date_kind == 'interview':
+            if 'TraffickingEvent.date' not in mapping.values():
+                return jsonify({
+                    'success': False,
+                    'error': 'Interview date requires a TraffickingEvent.date mapping.'
+                }), 400
+
+            if data.get('interview_date_approved') is not True:
+                return jsonify({
+                    'success': False,
+                    'error': 'Explicit researcher approval required for interview-date stand-in.'
+                }), 403
+
+
+        # D-T2: Validate mapping targets against the current CDM
+        from models import get_cdm_schema
+
+        cdm_schema = get_cdm_schema()
+        allowed_targets = {
+            f"{entity_name}.{field['name']}"
+            for entity_name, entity in cdm_schema.items()
+            for field in entity['fields']
+        }
+
+        selected_targets = [
+            target for target in mapping.values() if target
+        ]
+
+        if any(
+            not isinstance(target, str) or target not in allowed_targets
+            for target in selected_targets
+        ):
+            return jsonify({
+                'success': False,
+                'error': 'Mapping contains an invalid CDM target.'
+            }), 400
+
+        if len(selected_targets) != len(set(selected_targets)):
+            return jsonify({
+                'success': False,
+                'error': 'Multiple source columns cannot map to the same CDM target.'
+            }), 400
             
         # Filter out nulls/empty mappings
         rename_dict = {k: v for k, v in mapping.items() if v}
@@ -1599,9 +1661,39 @@ def apply_mapping():
         
         if excel_path.exists():
             df = pd.read_excel(excel_path)
+            # D-T2: Reject mappings with missing source columns
+            missing_sources = [
+                source for source in rename_dict
+                if source not in df.columns
+            ]
+            if missing_sources:
+                return jsonify({
+                    'success': False,
+                    'error': 'Mapping contains source columns not found in the dataset.',
+                    'missing_sources': missing_sources
+                }), 400
+
             df.rename(columns=rename_dict, inplace=True)
-            df.to_excel(excel_path, index=False)
-            return jsonify({'success': True, 'message': 'Excel file updated'})
+
+            # D-T2: Stage the Excel update and save the approved decision.
+            def write_staged_excel(staged_path):
+                df.to_excel(staged_path, index=False)
+
+            record_id = apply_with_decision_record(
+                source_path=excel_path,
+                write_staged_file=write_staged_excel,
+                mapping=rename_dict,
+                date_kind=date_kind,
+                researcher_approved=data.get('researcher_approved'),
+                interview_date_approved=data.get('interview_date_approved')
+            )
+
+            return jsonify({
+                'success': True,
+                'message': 'Excel file updated',
+                'decision_record_id': record_id
+            })
+
             
         # Check JSON
         uploads_dir = base_dir / 'uploads'
@@ -1611,6 +1703,29 @@ def apply_mapping():
                 file_path = json_files[0]
                 with open(file_path, 'r') as f:
                     json_data = json.load(f)
+                # D-T2: Validate JSON records before applying mappings
+                if (
+                    not isinstance(json_data, list)
+                    or not json_data
+                    or not all(isinstance(record, dict) for record in json_data)
+                ):
+                    return jsonify({
+                        'success': False,
+                        'error': 'JSON data must be a non-empty list of records.'
+                    }), 400
+
+                # D-T2: Reject mappings with missing source columns
+                missing_sources = [
+                    source for source in rename_dict
+                    if any(source not in record for record in json_data)
+                ]
+
+                if missing_sources:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Mapping contains source columns not found in the dataset.',
+                        'missing_sources': missing_sources
+                    }), 400
                 
                 # Update keys in all records
                 new_data = []
@@ -1621,10 +1736,27 @@ def apply_mapping():
                         new_record[new_key] = v
                     new_data.append(new_record)
                     
-                with open(file_path, 'w') as f:
-                    json.dump(new_data, f, indent=2)
-                    
-                return jsonify({'success': True, 'message': 'JSON file updated'})
+
+                # D-T2: Stage the JSON update and record the approved decision.
+                def write_staged_json(staged_path):
+                    with open(staged_path, 'w', encoding='utf-8') as f:
+                        json.dump(new_data, f, indent=2)
+
+                record_id = apply_with_decision_record(
+                    source_path=file_path,
+                    write_staged_file=write_staged_json,
+                    mapping=rename_dict,
+                    date_kind=date_kind,
+                    researcher_approved=data.get('researcher_approved'),
+                    interview_date_approved=data.get('interview_date_approved')
+                )
+
+                return jsonify({
+                    'success': True,
+                    'message': 'JSON file updated',
+                    'decision_record_id': record_id
+                })
+
                 
         return jsonify({'success': False, 'error': 'No file found to update'}), 404
         
@@ -1837,10 +1969,11 @@ def suggest_mapping():
         data = request.get_json()
         source_columns = data.get('columns', [])
         model = data.get('model', 'llama3')
-        auto_transform = data.get('auto_transform', True)
+        # D-T2: Suggestions must not modify source data before researcher approval.
+        auto_transform = False
         
         # Get CDM schema from models
-        from models import CDM_SCHEMA
+        from models import get_cdm_schema
         
         mapper = SmartMapper()
         if not mapper.is_available():
@@ -1849,7 +1982,7 @@ def suggest_mapping():
                 'error': 'Ollama AI service is not available. Please start it with: docker-compose --profile ai up'
             }), 503
             
-        result = mapper.suggest_mapping(source_columns, CDM_SCHEMA, model=model)
+        result = mapper.suggest_mapping(source_columns, get_cdm_schema(), model=model)
         
         # Extract mapping and transformations from AI response
         if isinstance(result, dict) and 'mapping' in result:

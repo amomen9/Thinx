@@ -181,11 +181,21 @@ export default {
     const response = await apiClient.post('/suggest-mapping', { columns, model }, config)
     return response.data
   },
-
-  async applyMapping(mapping) {
-    const response = await apiClient.post('/apply-mapping', { mapping })
+  async applyMapping(
+    mapping,
+    researcherApproved = false,
+    dateKind = 'unknown',
+    interviewDateApproved = false
+  ) {
+    const response = await apiClient.post('/apply-mapping', {
+      mapping,
+      researcher_approved: researcherApproved,
+      date_kind: dateKind,
+      interview_date_approved: interviewDateApproved
+    })
     return response.data
   },
+
 
   async getDataPreview() {
     const response = await apiClient.get('/data-preview')
@@ -205,7 +215,7 @@ export default {
   async uploadFile(file) {
     const formData = new FormData()
     formData.append('file', file)
-    
+
     const response = await apiClient.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
