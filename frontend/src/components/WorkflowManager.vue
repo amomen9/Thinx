@@ -182,7 +182,7 @@
                       </select>
                     </div>
                     <div class="col-md-4">
-                      <button 
+                      <button
                         class="btn btn-outline-secondary w-100" 
                         @click="refreshModels"
                         title="Refresh Model List"
@@ -344,6 +344,7 @@
                         <tr>
                           <th>Your Column</th>
                           <th>Mapped To (CDM)</th>
+                          <th>Researcher Decision</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -353,14 +354,94 @@
                             <span v-if="target" class="badge bg-success">{{ target }}</span>
                             <span v-else class="badge bg-secondary">No match</span>
                           </td>
-                        </tr>
+                          <td>
+                          <select
+                          v-if="reviewedMapping"
+                          v-model="reviewedMapping[source]"
+                          class="form-select form-select-sm"
+                          @change="mappingApproved = false; interviewDateApproved = false"
+                        >
+                          <option :value="null">No match - leave unmapped</option>
+
+                          <optgroup
+                          v-for="(entity, entityName) in schema"
+                          :key="entityName"
+                          :label="entityName"
+                         >
+                          <option
+                          v-for="field in entity.fields"
+                          :key="field.name"
+                          :value="`${entityName}.${field.name}`"
+                         >
+                          {{ entityName }}.{{ field.name }}
+                         </option>
+                        </optgroup>
+                       </select>
+                      </td>
+
+                     </tr>
                       </tbody>
                     </table>
                   </div>
+                  <!-- D-T2: Explicit researcher approval -->
+                  <div class="form-check mt-3">
+                    <input
+                      id="researcherMappingApproval"
+                      v-model="mappingApproved"
+                      class="form-check-input"
+                      type="checkbox"
+                      :disabled="applyingMapping || !reviewedMapping"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="researcherMappingApproval"
+                    >
+                      I have reviewed the mapping decisions above
+                      and approve applying them to the dataset.
+                    </label>
+                  </div>
+                  <!-- D-T2: Separate confirmation for interview-date stand-ins -->
+                  <div
+                    v-if="reviewedMapping && Object.values(reviewedMapping).includes('TraffickingEvent.date')"
+                    class="mt-3 mb-3"
+                  >
+                    <label for="dt2DateKind" class="form-label">
+                      <strong>Date Type</strong>
+                    </label>
+
+                    <select
+                      id="dt2DateKind"
+                      v-model="dateKind"
+                      class="form-select"
+                      @change="interviewDateApproved = false; mappingApproved = false"
+                    >
+                      <option value="unknown">Unknown</option>
+                      <option value="event">Actual event date</option>
+                      <option value="interview">Interview date used as a stand-in</option>
+                    </select>
+
+                    <div v-if="dateKind === 'interview'" class="form-check mt-3">
+                      <input
+                        id="dt2InterviewDateApproval"
+                        v-model="interviewDateApproved"
+                        class="form-check-input"
+                        type="checkbox"
+                      />
+                      <label
+                        class="form-check-label"
+                        for="dt2InterviewDateApproval"
+                      >
+                        I explicitly approve using the interview date as a stand-in
+                        for the missing event date.
+                      </label>
+                    </div>
+                  </div>
+
+
                   <button 
                     class="btn btn-success mt-2" 
                     @click="applyMapping"
-                    :disabled="applyingMapping"
+                    :disabled="applyingMapping || !mappingApproved || !reviewedMapping"
                   >
                     <i :class="['fas', applyingMapping ? 'fa-spinner fa-spin' : 'fa-check', 'me-2']"></i>
                     Apply Mapping to File
@@ -783,6 +864,10 @@ export default {
       mappingLoading: false,
       applyingMapping: false,
       suggestedMapping: null,
+      reviewedMapping: null,
+      mappingApproved: false,
+      dateKind: 'unknown',
+      interviewDateApproved: false,
       newModelName: '',
       pullingModel: false,
       pullStatus: null,
@@ -825,6 +910,22 @@ export default {
 
   methods: {
     async checkAiStatus() {
+      // D-T2: Development-only mocked mapping suggestions for UI testing
+      if (import.meta.env.DEV && import.meta.env.VITE_DT2_MOCK_MAPPING === 'true') {
+        this.aiAvailable = true
+        this.aiModels = [{ name: 'dt2-mock' }]
+        this.selectedModel = 'dt2-mock'
+
+        this.suggestedMapping = {
+          event_date: 'TraffickingEvent.date',
+          event_location: 'Location.name',
+          agent_alias: 'Agent.alias'
+        }
+
+        this.reviewedMapping = { ...this.suggestedMapping }
+        this.mappingApproved = false
+        return
+      }
       try {
         const status = await api.checkAiStatus()
         this.aiAvailable = status.available
@@ -904,6 +1005,8 @@ export default {
           }
           
           this.suggestedMapping = mapResponse.mapping
+          this.reviewedMapping = { ...mapResponse.mapping }
+          this.mappingApproved = false
           
           // Show transformations that were applied
           if (mapResponse.transformations_applied && mapResponse.transformations_applied.length > 0) {
@@ -986,15 +1089,38 @@ export default {
     },
 
     async applyMapping() {
-      if (!this.suggestedMapping) return
+      if (!this.reviewedMapping || !this.mappingApproved) {
+        alert('Please review and approve the mappings before applying them.')
+        return
+      }
       
+      // D-T2: Require separate approval for interview-date stand-ins
+      const hasEventDateMapping = Object.values(this.reviewedMapping)
+        .includes('TraffickingEvent.date')
+
+      if (
+        hasEventDateMapping &&
+        this.dateKind === 'interview' &&
+        !this.interviewDateApproved
+      ) {
+        alert('Please explicitly approve using the interview date as a stand-in.')
+        return
+      }
+
       this.applyingMapping = true
       try {
-        const response = await api.applyMapping(this.suggestedMapping)
+        const response = await api.applyMapping(
+          this.reviewedMapping,
+          this.mappingApproved,
+          this.dateKind,
+          this.interviewDateApproved
+        )
         if (response.success) {
           alert('✓ ' + response.message)
           // Clear mapping after success
           this.suggestedMapping = null
+          this.reviewedMapping = null
+          this.mappingApproved = false
         } else {
           alert('Failed to apply mapping: ' + response.error)
         }
