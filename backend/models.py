@@ -258,6 +258,9 @@ class UserManager:
                     user['full_name'] = updates['full_name']
                 if 'is_admin' in updates:
                     user['is_admin'] = updates['is_admin']
+                if 'can_view_sensitive' in updates:
+                    # May see decrypted names and restricted values (D-S9).
+                    user['can_view_sensitive'] = bool(updates['can_view_sensitive'])
                 if 'password' in updates:
                     user['password_hash'] = User.hash_password(updates['password'])
                 

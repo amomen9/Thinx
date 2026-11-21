@@ -11,6 +11,8 @@ from cryptography.fernet import Fernet
 
 os.environ.setdefault('SECRET_KEY', 'test-only-secret-not-for-production-123456789012345')
 os.environ.setdefault('CONNECTION_ENCRYPTION_KEY', Fernet.generate_key().decode())
+os.environ.setdefault('DATA_ENCRYPTION_KEY', Fernet.generate_key().decode())
+os.environ.setdefault('ID_HMAC_KEY', 'test-only-hmac-key-not-for-production-0123456789')
 
 if 'franz' not in sys.modules:
     for name in ['franz', 'franz.openrdf', 'franz.openrdf.connect', 'franz.openrdf.sail',
