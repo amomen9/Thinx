@@ -19,6 +19,7 @@ from datetime import datetime
 from werkzeug.exceptions import HTTPException
 from flask import g
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from data_protection import protect_results
 import config
 import hashlib
 import hmac
@@ -882,7 +883,7 @@ def execute_query():
             connection['password']
         )
         
-        results = ag_client.execute_query(query)
+        results = protect_results(ag_client.execute_query(query), g.current_user)
         
         return jsonify({
             'success': True,
@@ -940,34 +941,16 @@ def get_data():
         OFFSET {offset}
         """
         
-        results = ag_client.execute_query(query)
+        results = protect_results(ag_client.execute_query(query), g.current_user)
         
+        # Only counts and types are logged, never data values (D-S9).
         print(f"[Data] Query returned {len(results)} results")
-        if len(results) > 0:
-            print(f"[Data] First result: {results[0]}")
-        else:
+        if len(results) == 0:
             # Debug: Check what's actually in the repository
             try:
-                # Get all types
                 debug_query = "SELECT DISTINCT ?type WHERE { ?s a ?type } LIMIT 20"
                 types = ag_client.execute_query(debug_query)
                 print(f"[Data] Types found in repository: {types}")
-                
-                # Get sample triples
-                sample_query = "SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10"
-                samples = ag_client.execute_query(sample_query)
-                print(f"[Data] Sample triples: {samples}")
-                
-                # Check for any victims with any predicate
-                victim_check = """
-                PREFIX hds: <http://example.org/hds#>
-                SELECT ?s ?p ?o WHERE { 
-                    ?s a hds:Victim .
-                    ?s ?p ?o 
-                } LIMIT 5
-                """
-                victim_data = ag_client.execute_query(victim_check)
-                print(f"[Data] Sample victim data: {victim_data}")
             except Exception as debug_error:
                 print(f"[Data] Debug query failed: {debug_error}")
         
