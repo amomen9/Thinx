@@ -1195,15 +1195,43 @@ def validate_data():
                     }
                 }), 200
             
+            # Ali begin: JSON-safety check: finds cells that would break or go missing on the way to the browser
+            errors, warnings, bad_rows = [], [], set()
+            for col in df.columns:
+                ### Excel row numbers, the header is row 1
+                empty = [i + 2 for i in df.index[df[col].isna()]]
+                if empty:
+                    shown = ', '.join(map(str, empty[:5])) + (', ...' if len(empty) > 5 else '')
+                    warnings.append(f'Column "{col}": {len(empty)} empty cell(s), rows {shown}')
+                if pd.api.types.is_float_dtype(df[col]):
+                    inf = [i + 2 for i in df.index[df[col].isin([float('inf'), float('-inf')])]]
+                    if inf:
+                        bad_rows.update(inf)
+                        shown = ', '.join(map(str, inf[:5])) + (', ...' if len(inf) > 5 else '')
+                        errors.append(f'Column "{col}": {len(inf)} infinite value(s), rows {shown}. '
+                                      'JSON cannot carry them.')
+            if warnings:
+                warnings.append('Empty also covers texts that pandas reads as missing, such as None, N/A or NULL.')
+            ### the conversion the preview uses must give strict JSON
+            try:
+                json.dumps(df.astype(object).where(pd.notna(df), None).to_dict('records'),
+                           allow_nan=False, default=str)
+            except ValueError:
+                errors.append('The data cannot be turned into valid JSON, so the browser could not show it.')
+            # Ali end: JSON-safety check
+
             return jsonify({
                 'success': True,
                 'validation': {
-                    'passed': True,
+                    # Ali begin: Validation result: taken from the JSON-safety check
+                    'passed': not errors,
                     'total_rows': total_rows,
-                    'valid_rows': total_rows,
-                    'errors': [],
-                    'warnings': [],
-                    'message': f'File validated successfully. Found {total_rows} data rows.'
+                    'valid_rows': total_rows - len(bad_rows),
+                    'errors': errors,
+                    'warnings': warnings,
+                    'message': (f'File validated successfully. Found {total_rows} data rows.' if not errors
+                                else f'Found {total_rows} data rows and {len(errors)} problem(s).')
+                    # Ali end: Validation result
                 }
             }), 200
         except Exception as read_error:
@@ -1643,7 +1671,9 @@ def get_data_preview():
         if excel_path.exists():
             df = pd.read_excel(excel_path, nrows=10)
             # Replace NaN with None (which becomes null in JSON)
-            df = df.where(pd.notna(df), None)
+            # Ali begin: Null-safe preview: object dtype keeps None, a number column would turn it back into NaN
+            df = df.astype(object).where(pd.notna(df), None)
+            # Ali end: Null-safe preview
             return jsonify({
                 'success': True,
                 'preview': df.to_dict('records'),
@@ -1785,7 +1815,9 @@ def transform_column():
         
         # Get preview with proper null handling
         preview_data = df[column_name].head(5)
-        preview_data = preview_data.where(pd.notna(preview_data), None)
+        # Ali begin: Null-safe column preview: the same NaN fix as the data preview
+        preview_data = preview_data.astype(object).where(pd.notna(preview_data), None)
+        # Ali end: Null-safe column preview
         
         return jsonify({
             'success': True,
