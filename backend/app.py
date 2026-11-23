@@ -1584,7 +1584,9 @@ def get_data_preview():
         if excel_path.exists():
             df = pd.read_excel(excel_path, nrows=10)
             # Replace NaN with None (which becomes null in JSON)
-            df = df.where(pd.notna(df), None)
+            # Ali begin: Null-safe preview: object dtype keeps None, a number column would turn it back into NaN
+            df = df.astype(object).where(pd.notna(df), None)
+            # Ali end: Null-safe preview
             return jsonify({
                 'success': True,
                 'preview': df.to_dict('records'),
@@ -1726,7 +1728,9 @@ def transform_column():
         
         # Get preview with proper null handling
         preview_data = df[column_name].head(5)
-        preview_data = preview_data.where(pd.notna(preview_data), None)
+        # Ali begin: Null-safe column preview: the same NaN fix as the data preview
+        preview_data = preview_data.astype(object).where(pd.notna(preview_data), None)
+        # Ali end: Null-safe column preview
         
         return jsonify({
             'success': True,
