@@ -592,6 +592,15 @@
                 <li v-for="(error, index) in validationResult.errors" :key="index">{{ error }}</li>
               </ul>
             </div>
+
+            <!-- Ali begin: Validation warnings: lists the warnings the backend returns next to the errors -->
+            <div v-if="validationResult.warnings && validationResult.warnings.length" class="alert alert-warning mt-3">
+              <h6><i class="fas fa-exclamation-triangle me-2"></i> Validation Warnings</h6>
+              <ul class="mb-0">
+                <li v-for="(warning, index) in validationResult.warnings" :key="index">{{ warning }}</li>
+              </ul>
+            </div>
+            <!-- Ali end: Validation warnings -->
           </div>
         </div>
 
