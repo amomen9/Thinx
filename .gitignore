@@ -58,3 +58,6 @@ wheels/
 # OS
 .DS_Store
 Thumbs.db
+
+
+data_sphere_repo/
