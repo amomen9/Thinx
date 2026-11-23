@@ -1061,6 +1061,10 @@ export default {
         
         if (response && response.success === true) {
           this.dataPreview = response
+        // Ali begin: Unreadable reply: axios hands over a reply it cannot parse as JSON as plain text
+        } else if (typeof response === 'string') {
+          alert('❌ Failed to load data preview:\n\nThe server answered, but its reply is not valid JSON, so the browser cannot read it. The file from Step 2 did arrive.\n\n📝 Run "Validate Uploaded File" below to see which cells may cause it.')
+        // Ali end: Unreadable reply
         } else {
           const errorMsg = response?.error || 'Unable to load preview'
           alert('❌ Failed to load data preview:\n\n' + errorMsg + '\n\n📝 Make sure you have uploaded a file in Step 2.')
@@ -1075,7 +1079,10 @@ export default {
         } else if (error.message) {
           errorMsg = error.message
         }
-        alert('❌ Error loading preview:\n\n' + errorMsg + '\n\n📝 Make sure you have uploaded a file in Step 2.')
+        // Ali begin: Step 2 hint: only a missing file (HTTP 404) points back to the upload
+        const hint = error.response?.status === 404 ? '\n\n📝 Make sure you have uploaded a file in Step 2.' : ''
+        alert('❌ Error loading preview:\n\n' + errorMsg + hint)
+        // Ali end: Step 2 hint
       } finally {
         this.loadingPreview = false
       }
